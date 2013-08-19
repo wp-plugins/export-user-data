@@ -3,7 +3,7 @@ Contributors: Q Studio sorich87
 Tags: user, users, xprofile, usermeta csv, excel, batch, export, exporter, admin
 Requires at least: 3.2
 Tested up to: 3.6
-Stable tag: 0.5
+Stable tag: 0.5.1
 Original: http://wordpress.org/plugins/export-users-to-csv/
 License: GPLv2
 
