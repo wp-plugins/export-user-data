@@ -1,6 +1,6 @@
 === Plugin Name ===
 Contributors: Q Studio
-Tags: user, users, xprofile, usermeta csv, excel, batch, export, exporter, admin
+Tags: user, users, xprofile, usermeta csv, excel, batch, export, save
 Requires at least: 3.2
 Tested up to: 3.6
 Stable tag: 0.5.1
@@ -11,7 +11,7 @@ Export users data, metadata and buddypress xprofile data to a csv or Excel file
 
 == Description ==
 
-A plugin that export ALL user data, meta data and BuddyPress xProfile data.
+A plugin that exports ALL user data, meta data and BuddyPress xProfile data.
 
 Includes an option to export the users by role, registration date range, usermeta option and two export formats.
 
