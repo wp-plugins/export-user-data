@@ -1,13 +1,13 @@
 <?php
 /**
  * @package Export_User_Data
- * @version 0.6.1
+ * @version 0.6.3
  */
 /*
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.6.1
+Version: 0.6.3
 Author: Q Studio
 Author URI: http://qstudio.us/
 License: GPL2
@@ -33,26 +33,63 @@ class Q_EUD_Export_Users {
 	 * @since 0.1
 	 **/
 	public function __construct() {
-		add_action( 'admin_menu', array( $this, 'add_admin_pages' ) );
-		add_action( 'init', array( $this, 'generate_data' ) );
-		add_filter( 'q_eud_exclude_data', array( $this, 'exclude_data' ) );
+            add_action( 'admin_menu', array( $this, 'add_admin_pages' ) );
+            add_action( 'init', array( $this, 'generate_data' ) );
+            add_filter( 'q_eud_exclude_data', array( $this, 'exclude_data' ) );
+            add_action( 'admin_init', array( $this, 'add_css_and_js' ) );
+            add_action( 'admin_footer', array( $this, 'multiselect' ), 100000 );
 	}
 
-	/**
+	
+        /**
 	 * Add administration menus
 	 *
 	 * @since 0.1
 	 **/
 	public function add_admin_pages() {
-		add_users_page( __( 'Export User Data', 'export-user-data' ), __( 'Export User Data', 'export-user-data' ), 'list_users', 'export-user-data', array( $this, 'users_page' ) );
+            add_users_page( __( 'Export User Data', 'export-user-data' ), __( 'Export User Data', 'export-user-data' ), 'list_users', 'export-user-data', array( $this, 'users_page' ) );
+            #add_action( 'admin_footer-'. $plugin_page, 'multiselect' );
 	}
+        
+        
+        /* style and interaction */
+        function add_css_and_js() {
+            wp_register_style('q_eud_multi_select_css', plugins_url('css/multi-select.css',__FILE__ ));
+            wp_enqueue_style('q_eud_multi_select_css');
+            wp_enqueue_script('q_eud_multi_select_js', plugins_url('js/jquery.multi-select.js',__FILE__ ), array('jquery'), '0.9.8', false );
+        }
 
+        
         /* clean that stuff up ## */
         public function sanitize($value) {
             $value = str_replace("\r", '', $value);
             $value = str_replace("\n", '', $value);
             $value = str_replace("\t", '', $value);
             return $value;
+        }
+        
+        
+        /* activate multiselects */
+        function multiselect() {
+?>
+        <script>
+            // build super multiselect ##
+            jQuery('#usermeta, #bp_fields').multiSelect();
+            
+            // show only common ##
+            jQuery('.usermeta-common').click(function(e){
+                e.preventDefault();
+                jQuery('#ms-usermeta .ms-selectable li.system').hide();
+            });
+            
+            // show all ##
+            jQuery('.usermeta-all').click(function(e){
+                e.preventDefault();
+                jQuery('#ms-usermeta .ms-selectable li').show();
+            });
+            
+        </script>
+<?php
         }
         
 	/**
@@ -147,17 +184,6 @@ class Q_EUD_Export_Users {
                             $usermeta_fields[] = $field;
                         }
                         
-                        // array of usermeta fields to include ##
-                        /*
-                        $usermeta_fields = array(
-                            'member_of_club', // program ID ##
-                            'last_activity', // last BP activity ##
-                            'q_api_u_key', // Adage registration key ##
-                            'rewards_milestone', // if reward milestone reached ##
-                            'total_friend_count', // BP friend count ## 
-                        );
-                        */
-                        
                         // check for selected x profile fields ##
                         $bp_fields = $_POST['bp_fields'];
                         $bp_fields_passed = array();
@@ -174,7 +200,7 @@ class Q_EUD_Export_Users {
                         // global wpdb object ##
 			global $wpdb;
                         
-                        // requested user data ##
+                        // exportable user data ##
 			$data_keys = array(
                             'ID', 'user_login', 'user_pass',
                             'user_nicename', 'user_email', 'user_url',
@@ -284,8 +310,8 @@ class Q_EUD_Export_Users {
                 // get meta_key value from object ##
                 $meta_keys = wp_list_pluck( $meta_keys, 'meta_key' );
                 
-                // let's ditch some of them odd keys ##
-                $meta_keys_drop = array(
+                // let's note some of them odd keys ##
+                $meta_keys_system = array(
                     'metaboxhidden',
                     'activation',
                     'bp_',
@@ -313,11 +339,12 @@ class Q_EUD_Export_Users {
                 );
                 
                 // allow array to be filtered ##
-                $meta_keys_drop = apply_filters( 'export_user_data_meta_keys_drop', $meta_keys_drop );
-                    
+                $meta_keys_system = apply_filters( 'export_user_data_meta_keys_system', $meta_keys_system );
+                  
+                /*  
                 foreach ( $meta_keys as $key ) {
 
-                    foreach ( $meta_keys_drop as $drop ) {
+                    foreach ( $meta_keys_system as $drop ) {
 
                         if ( strpos( $key, $drop ) !== false ) {
 
@@ -332,6 +359,7 @@ class Q_EUD_Export_Users {
                     }
 
                 }
+                */
                     
                 // test array ##
                 #echo '<pre>'; var_dump($meta_keys); echo '</pre>'; 
@@ -341,28 +369,58 @@ class Q_EUD_Export_Users {
                         
 ?>
                 <tr valign="top">
-                    <th scope="row"><label for="q_eud_usermeta"><?php _e( 'User Meta Fields', 'export-user-data' ); ?></label></th>
+                    <th scope="row">
+                        <label for="q_eud_usermeta"><?php _e( 'User Meta Fields', 'export-user-data' ); ?></label>
+                        <p class="filter" style="margin: 10px 0 0;">
+                            <?php _e('Filter', 'export-user-data'); ?>: <a href="#" class="usermeta-all"><?php _e('All', 'export-user-data'); ?></a> | <a href="#" class="usermeta-common"><?php _e('Common', 'export-user-data'); ?></a>
+                        </p>
+                    </th>
                     <td>
-                        <?php
-                        
-                        foreach ( $meta_keys as $key ) {
-                            
-                            #echo "\n\t<option value='" . esc_attr( $role ) . "'>$name</option>";
-                            
-                            // display $key ##
-                            $display_key = $key;
-                            
-                            // rename programs field ##
-                            if ( $display_key == 'member_of_club' ){
-                                $display_key = 'program';
+                        <select multiple="multiple" id="usermeta" name="usermeta[]">
+<?php
+
+                            foreach ( $meta_keys as $key ) {
+
+                                #echo "\n\t<option value='" . esc_attr( $role ) . "'>$name</option>";
+
+                                // display $key ##
+                                $display_key = $key;
+
+                                // rename programs field ##
+                                if ( $display_key == 'member_of_club' ){
+                                    $display_key = 'program';
+                                }
+
+                                // tidy ##
+                                $display_key = str_replace( "_", " ", ucwords($display_key) );
+
+                                #echo "<label for='".esc_attr( $key )."' title='".esc_attr( $key )."'><input id='".esc_attr( $key )."' type='checkbox' name='usermeta[]' value='".esc_attr( $key )."'/> $display_key</label><br />";
+                                
+                                // class ##
+                                $usermeta_class = 'normal';
+                                
+                                foreach ( $meta_keys_system as $drop ) {
+
+                                    if ( strpos( $key, $drop ) !== false ) {
+
+                                        #echo 'FOUND -- '.$drop.' in '.$key.'<br />';
+
+                                        if(($key = array_search($key, $meta_keys)) !== false) {
+                                            
+                                            $usermeta_class = 'system';
+                                            
+                                        }
+                                        
+                                    }
+                                    
+                                }
+                                
+                                // print key ##
+                                echo "<option value='".esc_attr( $key )."' title='".esc_attr( $key )."' class='".$usermeta_class."'>$display_key</option>";
+                                
                             }
-                            
-                            // tidy ##
-                            $display_key = str_replace( "_", " ", ucwords($display_key) );
-                            
-                            echo "<label for='".esc_attr( $key )."' title='".esc_attr( $key )."'><input id='".esc_attr( $key )."' type='checkbox' name='usermeta[]' value='".esc_attr( $key )."'/> $display_key</label><br />";
-                        }
-                        ?>
+?>
+                        </select>
                     </td>
                 </tr>
 <?php
@@ -391,6 +449,7 @@ class Q_EUD_Export_Users {
                 <tr valign="top">
                     <th scope="row"><label for="q_eud_xprofile"><?php _e( 'BP xProfile Fields', 'export-user-data' ); ?></label></th>
                     <td>
+                        <select multiple="multiple" id="bp_fields" name="bp_fields[]">
                         <?php
                         
                         foreach ( $bp_fields as $key ) {
@@ -398,9 +457,14 @@ class Q_EUD_Export_Users {
                             // tidy up key ##
                             $key_tidy = str_replace( ' ', '__', ($key));
                             
-                            echo "<label for='".esc_attr( $key_tidy )."'><input id='".esc_attr( $key_tidy )."' type='checkbox' name='bp_fields[]' value='".esc_attr( $key_tidy )."'/> $key</label><br />";
+                            #echo "<label for='".esc_attr( $key_tidy )."'><input id='".esc_attr( $key_tidy )."' type='checkbox' name='bp_fields[]' value='".esc_attr( $key_tidy )."'/> $key</label><br />";
+                        
+                            // print key ##
+                            echo "<option value='".esc_attr( $key )."' title='".esc_attr( $key )."'>$key</option>";
+
                         }
                         ?>
+                        </select>
                     </td>
                 </tr>
 <?php
