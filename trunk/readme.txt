@@ -1,5 +1,5 @@
 === Plugin Name ===
-Contributors: Q Studio sorich87
+Contributors: Q Studio
 Tags: user, users, xprofile, usermeta csv, excel, batch, export, exporter, admin
 Requires at least: 3.2
 Tested up to: 3.6
