@@ -3,9 +3,9 @@ Contributors: Q Studio
 Tags: user, users, xprofile, usermeta csv, excel, batch, export, save
 Requires at least: 3.2
 Tested up to: 3.6
-Stable tag: 0.5.1
-Original: http://wordpress.org/plugins/export-users-to-csv/
+Stable tag: 0.5.2
 License: GPLv2
+Original: http://wordpress.org/plugins/export-users-to-csv/
 
 Export users data, metadata and buddypress xprofile data to a csv or Excel file
 
