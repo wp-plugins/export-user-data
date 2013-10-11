@@ -1,0 +1,95 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Export User Data 0.6.3\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/export-users-to-csv\n"
+"POT-Creation-Date: 2013-08-19 15:34-0000\n"
+"PO-Revision-Date: 2013-08-19 15:34-0000\n"
+"Last-Translator: Ray <studio@quintalinda.com>\n"
+"Language-Team: Q Studio <team@qstudio.us>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.5.4\n"
+"X-Poedit-KeywordsList: _;_e;_n;__\n"
+"X-Poedit-Basepath: .\n"
+"Plural-Forms: s;\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPath-1: ..\n"
+
+#: ../export-user-data.php:50 ../export-user-data.php:292
+msgid "Export User Data"
+msgstr ""
+
+#: ../export-user-data.php:287
+msgid "You do not have sufficient permissions to access this page."
+msgstr ""
+
+#: ../export-user-data.php:297
+msgid "No users found."
+msgstr ""
+
+#: ../export-user-data.php:373
+msgid "User Meta Fields"
+msgstr ""
+
+#: ../export-user-data.php:375
+msgid "Filter"
+msgstr ""
+
+#: ../export-user-data.php:375
+msgid "All"
+msgstr ""
+
+#: ../export-user-data.php:375
+msgid "Common"
+msgstr ""
+
+#: ../export-user-data.php:450
+msgid "BP xProfile Fields"
+msgstr ""
+
+#: ../export-user-data.php:476
+msgid "Role"
+msgstr ""
+
+#: ../export-user-data.php:481
+msgid "All Roles"
+msgstr ""
+
+#: ../export-user-data.php:498
+msgid "Programs"
+msgstr ""
+
+#: ../export-user-data.php:503
+msgid "All Programs"
+msgstr ""
+
+#: ../export-user-data.php:524
+msgid "Registred"
+msgstr ""
+
+#: ../export-user-data.php:527
+msgid "Start Date"
+msgstr ""
+
+#: ../export-user-data.php:531
+msgid "End Date"
+msgstr ""
+
+#: ../export-user-data.php:538
+msgid "Format"
+msgstr ""
+
+#: ../export-user-data.php:543
+msgid "Excel"
+msgstr ""
+
+#: ../export-user-data.php:544
+msgid "CSV"
+msgstr ""
+
+#: ../export-user-data.php:553
+msgid "Export"
+msgstr ""
