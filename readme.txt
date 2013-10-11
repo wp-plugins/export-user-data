@@ -60,7 +60,7 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 
 == Changelog ==
 
-= 0.7.2
+= 0.7.2 =
 * fixes to allow exports without selecting extra user date from usermeta or x-profile
 
 = 0.6.3 =
