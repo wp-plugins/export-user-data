@@ -1,13 +1,13 @@
 <?php
 /**
  * @package Export_User_Data
- * @version 0.6.3
+ * @version 0.7.1
  */
 /*
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.6.3
+Version: 0.7.1
 Author: Q Studio
 Author URI: http://qstudio.us/
 License: GPL2
@@ -178,23 +178,27 @@ class Q_EUD_Export_Users {
 			$exclude_data = apply_filters( 'q_eud_exclude_data', array() );
                         
                         // check for selected usermeta fields ##
-                        $usermeta = $_POST['usermeta'];
+                        $usermeta = isset( $_POST['usermeta'] ) ? $_POST['usermeta']: '';
                         $usermeta_fields = array();
-                        foreach( $usermeta as $field ) {
-                            $usermeta_fields[] = $field;
+                        if ( $usermeta && is_array($usermeta) ) {
+                            foreach( $usermeta as $field ) {
+                                $usermeta_fields[] = $field;
+                            }
                         }
                         
                         // check for selected x profile fields ##
-                        $bp_fields = $_POST['bp_fields'];
+                        $bp_fields = isset( $_POST['bp_fields'] ) ? $_POST['bp_fields'] : '';
                         $bp_fields_passed = array();
-                        foreach( $bp_fields as $field ) {
-                            
-                            // reverse tidy ##
-                            $field = str_replace( '__', ' ', $field );
-                            
-                            // add to array ##
-                            $bp_fields_passed[] = $field;
-                            
+                        if ( $bp_fields && is_array($bp_fields) ) {
+                            foreach( $bp_fields as $field ) {
+
+                                // reverse tidy ##
+                                $field = str_replace( '__', ' ', $field );
+
+                                // add to array ##
+                                $bp_fields_passed[] = $field;
+
+                            }
                         }
                         
                         // global wpdb object ##
