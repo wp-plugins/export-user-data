@@ -3,7 +3,7 @@ Contributors: Q Studio
 Tags: user, users, xprofile, usermeta csv, excel, batch, export, save
 Requires at least: 3.2
 Tested up to: 3.6
-Stable tag: 0.7.2
+Stable tag: 0.7.3
 License: GPLv2
 
 Export users data, metadata and buddypress xprofile data to a csv or Excel file
@@ -60,7 +60,7 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 
 == Changelog ==
 
-= 0.7.2 =
+= 0.7.3 =
 * fixes to allow exports without selecting extra user date from usermeta or x-profile
 
 = 0.6.3 =

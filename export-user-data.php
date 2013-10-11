@@ -1,13 +1,13 @@
 <?php
 /**
  * @package Export_User_Data
- * @version 0.7.2
+ * @version 0.7.3
  */
 /*
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.7.2
+Version: 0.7.3
 Author: Q Studio
 Author URI: http://qstudio.us/
 License: GPL2
