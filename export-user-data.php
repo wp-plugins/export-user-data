@@ -1,13 +1,10 @@
 <?php
-/**
- * @package Export_User_Data
- * @version 0.7.3
- */
+
 /*
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.7.3
+Version: 0.7.4
 Author: Q Studio
 Author URI: http://qstudio.us/
 License: GPL2
@@ -33,11 +30,13 @@ class Q_EUD_Export_Users {
 	 * @since 0.1
 	 **/
 	public function __construct() {
+            
             add_action( 'admin_menu', array( $this, 'add_admin_pages' ) );
             add_action( 'init', array( $this, 'generate_data' ) );
             add_filter( 'q_eud_exclude_data', array( $this, 'exclude_data' ) );
             add_action( 'admin_init', array( $this, 'add_css_and_js' ) );
-            add_action( 'admin_footer', array( $this, 'multiselect' ), 100000 );
+            add_action( 'admin_footer', array( $this, 'jquery' ), 100000 );
+
 	}
 
 	
@@ -47,34 +46,40 @@ class Q_EUD_Export_Users {
 	 * @since 0.1
 	 **/
 	public function add_admin_pages() {
+            
             add_users_page( __( 'Export User Data', 'export-user-data' ), __( 'Export User Data', 'export-user-data' ), 'list_users', 'export-user-data', array( $this, 'users_page' ) );
-            #add_action( 'admin_footer-'. $plugin_page, 'multiselect' );
+            
 	}
         
         
         /* style and interaction */
         function add_css_and_js() {
+            
             wp_register_style('q_eud_multi_select_css', plugins_url('css/multi-select.css',__FILE__ ));
             wp_enqueue_style('q_eud_multi_select_css');
             wp_enqueue_script('q_eud_multi_select_js', plugins_url('js/jquery.multi-select.js',__FILE__ ), array('jquery'), '0.9.8', false );
+            
         }
 
         
         /* clean that stuff up ## */
         public function sanitize($value) {
+            
             $value = str_replace("\r", '', $value);
             $value = str_replace("\n", '', $value);
             $value = str_replace("\t", '', $value);
             return $value;
+            
         }
         
         
-        /* activate multiselects */
-        function multiselect() {
+        /* jquery */
+        function jquery() {
 ?>
         <script>
+            
             // build super multiselect ##
-            jQuery('#usermeta, #bp_fields').multiSelect();
+            jQuery('#usermeta, #bp_fields, #bp_fields_update_time').multiSelect();
             
             // show only common ##
             jQuery('.usermeta-common').click(function(e){
@@ -88,6 +93,18 @@ class Q_EUD_Export_Users {
                 jQuery('#ms-usermeta .ms-selectable li').show();
             });
             
+            // toggle update options ##
+            jQuery(".toggle a").click( function(e) {
+                e.preventDefault();
+                $toggle = jQuery(this).parent().next("div.select");
+                $toggle.toggle();
+                if ( $toggle.is(":visible") ) {
+                    jQuery(this).text("Hide Date Options");
+                } else {
+                    jQuery(this).text("Show Date Options");
+                }
+            });
+            
         </script>
 <?php
         }
@@ -98,7 +115,9 @@ class Q_EUD_Export_Users {
 	 * @since 0.1
 	 **/
 	public function generate_data() {
+            
 		if ( isset( $_POST['_wpnonce-q-eud-export-user-page_export'] ) ) {
+                    
 			check_admin_referer( 'q-eud-export-user-page_export', '_wpnonce-q-eud-export-user-page_export' );
                         
                         // build argument array ##
@@ -116,19 +135,25 @@ class Q_EUD_Export_Users {
                             
                         }
                         
+                        /* pre_user query */
 			add_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
 			$users = get_users( $args );
 			remove_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
 
+                        /* no users found, so chuck and error into the args array */
 			if ( ! $users ) {
+                            
                             $referer = add_query_arg( 'error', 'empty', wp_get_referer() );
                             wp_redirect( $referer );
                             exit;
+                            
 			}
 
+                        /* get sitename and clean it up */
 			$sitename = sanitize_key( get_bloginfo( 'name' ) );
-			if ( ! empty( $sitename ) )
-				$sitename .= '.';
+			if ( ! empty( $sitename ) ) {
+                            $sitename .= '.';
+                        }
                             
                         // export method ? ##
                         $export_method = 'excel'; // default to Excel export ##
@@ -145,29 +170,30 @@ class Q_EUD_Export_Users {
                         
                             case "csv":
                             
-                            // to csv ##
-                            header( 'Content-Description: File Transfer' );
-                            header( 'Content-Disposition: attachment; filename='.$filename.'.csv' );
-                            header( 'Content-Type: text/csv; charset=' . get_option( 'blog_charset' ), true );
+                                // to csv ##
+                                header( 'Content-Description: File Transfer' );
+                                header( 'Content-Disposition: attachment; filename='.$filename.'.csv' );
+                                header( 'Content-Type: text/csv; charset=' . get_option( 'blog_charset' ), true );
 
-                            // how to seperate data ##
-                            $seperator = ','; // comma for csv ##
-                        
-                            break;
+                                // how to seperate data ##
+                                $seperator = ','; // comma for csv ##
+
+                                break;
                             
                             case ('excel'):
                         
-                            // to xls ##
-                            header( 'Content-Description: File Transfer' );
-                            header("Content-Type: application/vnd.ms-excel");
-                            header("Content-Disposition: attachment; filename=$filename.xls");  
-                            header("Pragma: no-cache"); 
-                            header("Expires: 0");
-                            
-                            // how to seperate data ##
-                            $seperator = "\t"; //tabbed character
-                            
-                            break;
+                                // to xls ##
+                                header( 'Content-Description: File Transfer' );
+                                header("Content-Type: application/vnd.ms-excel");
+                                header("Content-Disposition: attachment; filename=$filename.xls");  
+                                header("Pragma: no-cache"); 
+                                header("Expires: 0");
+                                #echo "\xEF\xBB\xBF"; // UTF-8 BOM ##
+
+                                // how to seperate data ##
+                                $seperator = "\t"; // tabbed character ##
+
+                                break;
                         
                         }
                         
@@ -201,6 +227,18 @@ class Q_EUD_Export_Users {
                             }
                         }
                         
+                        // cwjordan: check for x profile fields we want update time for ##
+			$bp_fields_update = isset( $_POST['bp_fields_update_time'] ) ? $_POST['bp_fields_update_time'] : '';
+			$bp_fields_update_passed = array();
+			if ( $bp_fields_update && is_array($bp_fields_update ) ) {
+			  foreach( $bp_fields_update as $field ) {
+                                // reverse tidy ##
+                                $field = str_replace( '__', ' ', $field );
+                                // add to array ##
+                                $bp_fields_update_passed[] = $field . " Update Date";
+			  }
+			}
+                        
                         // global wpdb object ##
 			global $wpdb;
                         
@@ -213,7 +251,7 @@ class Q_EUD_Export_Users {
 			);
                         
                         // compile final fields list ##
-			$fields = array_merge( $data_keys, $usermeta_fields, $bp_fields_passed );
+			$fields = array_merge( $data_keys, $usermeta_fields, $bp_fields_passed, $bp_fields_update_passed );
                         
                         // build the document headers ##
 			$headers = array();
@@ -254,7 +292,12 @@ class Q_EUD_Export_Users {
                                         $value = $value['field_data'];
                                     }
                                     $value = $this->sanitize($value);
-
+				// check if this is a BP field we want update date for ##
+				} elseif ( in_array( $field, $bp_fields_update_passed ) ) {
+				    global $bp;
+				    $real_field = str_replace(" Update Date", "", $field);
+				    $field_id = xprofile_get_field_id_from_name( $real_field );
+				    $value = $wpdb->get_var ($wpdb->prepare( "SELECT last_updated FROM {$bp->profile->table_name_data} WHERE user_id = %d AND field_id = %d", $user->ID, $field_id ) );
                                 // user data or usermeta ##
                                 } else { 
                                  
@@ -344,26 +387,6 @@ class Q_EUD_Export_Users {
                 
                 // allow array to be filtered ##
                 $meta_keys_system = apply_filters( 'export_user_data_meta_keys_system', $meta_keys_system );
-                  
-                /*  
-                foreach ( $meta_keys as $key ) {
-
-                    foreach ( $meta_keys_system as $drop ) {
-
-                        if ( strpos( $key, $drop ) !== false ) {
-
-                            #echo 'FOUND -- '.$drop.' in '.$key.'<br />';
-                            
-                            if(($key = array_search($key, $meta_keys)) !== false) {
-                                unset($meta_keys[$key]);
-                            }
-                            
-                        }
-
-                    }
-
-                }
-                */
                     
                 // test array ##
                 #echo '<pre>'; var_dump($meta_keys); echo '</pre>'; 
@@ -454,7 +477,7 @@ class Q_EUD_Export_Users {
                     <th scope="row"><label for="q_eud_xprofile"><?php _e( 'BP xProfile Fields', 'export-user-data' ); ?></label></th>
                     <td>
                         <select multiple="multiple" id="bp_fields" name="bp_fields[]">
-                        <?php
+<?php
                         
                         foreach ( $bp_fields as $key ) {
 
@@ -467,11 +490,40 @@ class Q_EUD_Export_Users {
                             echo "<option value='".esc_attr( $key )."' title='".esc_attr( $key )."'>$key</option>";
 
                         }
-                        ?>
+                        
+?>
                         </select>
                     </td>
                 </tr>
 <?php
+
+		// allow export of update times ##
+
+?>
+                <tr valign="top">
+                    <th scope="row">
+                        <label for="q_eud_xprofile"><?php _e( 'BP xProfile Fields Update Time', 'export-user-data' ); ?></label>
+                    </th>
+                    <td>
+                        <div class="toggle">
+                            <a href="#"><?php _e( 'Show Date Options', 'export-user-data' ); ?></a>
+                        </div>
+                        <div class="select" style="display: none;">
+                            <select multiple="multiple" id="bp_fields_update_time" name="bp_fields_update_time[]">
+    <?php
+
+                            foreach ( $bp_fields as $key ) {
+
+                                echo "<option value='".esc_attr( $key )."' title='".esc_attr( $key )."'>$key</option>";
+
+                            }
+
+    ?>
+                            </select>
+                        </div>
+                    </td>
+                </tr>
+<?php		
                     
                 } // BP installed and active ##
 
@@ -525,7 +577,7 @@ class Q_EUD_Export_Users {
                         
 ?>
                 <tr valign="top">
-                    <th scope="row"><label><?php _e( 'Registred', 'export-user-data' ); ?></label></th>
+                    <th scope="row"><label><?php _e( 'Registered', 'export-user-data' ); ?></label></th>
                     <td>
                         <select name="start_date" id="q_eud_users_start_date">
                             <option value="0"><?php _e( 'Start Date', 'export-user-data' ); ?></option>
@@ -606,4 +658,5 @@ class Q_EUD_Export_Users {
 	}
 }
 
+/* instatiate class object */
 new Q_EUD_Export_Users;

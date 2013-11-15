@@ -1,9 +1,9 @@
 === Plugin Name ===
 Contributors: Q Studio
-Tags: user, users, xprofile, usermeta csv, excel, batch, export, save
+Tags: user, users, xprofile, usermeta, csv, excel, batch, export, save
 Requires at least: 3.2
 Tested up to: 3.6
-Stable tag: 0.7.3
+Stable tag: 0.7.4
 License: GPLv2
 
 Export users data, metadata and buddypress xprofile data to a csv or Excel file
@@ -13,8 +13,6 @@ Export users data, metadata and buddypress xprofile data to a csv or Excel file
 A plugin that exports ALL user data, meta data and BuddyPress xProfile data.
 
 Includes an option to export the users by role, registration date range, usermeta option and two export formats.
-
-Based on: http://wordpress.org/plugins/export-users-to-csv/
 
 = Features =
 
@@ -60,6 +58,9 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 
 == Changelog ==
 
+= 0.7.4 =
+* added commit by @cwjordan to allow for fields update time - thanks :)
+
 = 0.7.3 =
 * fixes to allow exports without selecting extra user date from usermeta or x-profile
 
@@ -71,7 +72,7 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 
 == Upgrade Notice ==
 
-= 0.6.3 =
+= 0.7.4 =
 Latest.
 
 = 0.5 =
