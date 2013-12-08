@@ -4,16 +4,12 @@
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.7.4
+Version: 0.7.5
 Author: Q Studio
 Author URI: http://qstudio.us/
 License: GPL2
 Text Domain: export-user-data
 */
-
-/*
- * Based on: Export User to CSV by PubPoet ( http://pubpoet.com/ )- Thanks!
- */
 
 load_plugin_textdomain( 'export-user-data', false, basename( dirname( __FILE__ ) ) . '/languages' );
 
@@ -34,7 +30,7 @@ class Q_EUD_Export_Users {
             add_action( 'admin_menu', array( $this, 'add_admin_pages' ) );
             add_action( 'init', array( $this, 'generate_data' ) );
             add_filter( 'q_eud_exclude_data', array( $this, 'exclude_data' ) );
-            add_action( 'admin_init', array( $this, 'add_css_and_js' ) );
+            add_action( 'admin_enqueue_scripts', array( $this, 'add_css_and_js' ), 1 );
             add_action( 'admin_footer', array( $this, 'jquery' ), 100000 );
 
 	}
@@ -53,11 +49,16 @@ class Q_EUD_Export_Users {
         
         
         /* style and interaction */
-        function add_css_and_js() {
+        function add_css_and_js($hook) {
             
-            wp_register_style('q_eud_multi_select_css', plugins_url('css/multi-select.css',__FILE__ ));
-            wp_enqueue_style('q_eud_multi_select_css');
-            wp_enqueue_script('q_eud_multi_select_js', plugins_url('js/jquery.multi-select.js',__FILE__ ), array('jquery'), '0.9.8', false );
+            // load the scripts on only the plugin admin page 
+            if (isset( $_GET['page'] ) && ( $_GET['page'] == 'export-user-data' ) ) {
+            
+                wp_register_style('q_eud_multi_select_css', plugins_url('css/multi-select.css',__FILE__ ));
+                wp_enqueue_style('q_eud_multi_select_css');
+                wp_enqueue_script('q_eud_multi_select_js', plugins_url('js/jquery.multi-select.js',__FILE__ ), array('jquery'), '0.9.8', false );
+            
+            } 
             
         }
 
@@ -75,6 +76,9 @@ class Q_EUD_Export_Users {
         
         /* jquery */
         function jquery() {
+            
+            // load the scripts on only the plugin admin page 
+            if (isset( $_GET['page'] ) && ( $_GET['page'] == 'export-user-data' ) ) {
 ?>
         <script>
             
@@ -107,6 +111,8 @@ class Q_EUD_Export_Users {
             
         </script>
 <?php
+            }
+
         }
         
 	/**
@@ -335,7 +341,7 @@ class Q_EUD_Export_Users {
             }
 ?>
 
-<div class="wrap">
+        <div class="wrap">
 	<h2><?php _e( 'Export User Data', 'export-user-data' ); ?></h2>
 <?php
         
