@@ -59,7 +59,7 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 == Changelog ==
 
 = 0.7.8 =
-* added xml template for Excel exports - thank to phil@fixitlab.com :)
+* added xml template for Excel exports - thanks to phil@fixitlab.com :)
 
 = 0.7.2 =
 * fixes to allow exports without selecting extra user date from usermeta or x-profile
