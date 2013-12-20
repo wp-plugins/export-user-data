@@ -4,7 +4,7 @@
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.7.6
+Version: 0.7.8
 Author: Q Studio
 Author URI: http://qstudio.us/
 License: GPL2
@@ -120,215 +120,296 @@ class Q_EUD_Export_Users {
 	 *
 	 * @since 0.1
 	 **/
-	public function generate_data() {
+        public function generate_data() {
             
-		if ( isset( $_POST['_wpnonce-q-eud-export-user-page_export'] ) ) {
+            if ( ! isset( $_POST['_wpnonce-q-eud-export-user-page_export'] ) ) { 
+                
+                return false;
+                
+            }
                     
-			check_admin_referer( 'q-eud-export-user-page_export', '_wpnonce-q-eud-export-user-page_export' );
-                        
-                        // build argument array ##
-                        $args = array(
-                            'fields' => 'all_with_meta',
-                            'role' => stripslashes( $_POST['role'] )
-			);
-                        
-                        // did the user request a specific program ? ##
-                        if ( isset( $_POST['program'] ) && $_POST['program'] != '' ) {
-                            
-                            $args['meta_key'] = 'member_of_club';
-                            $args['meta_value'] = (int)$_POST['program'];
-                            $args['meta_compare'] = '=';
-                            
+            check_admin_referer( 'q-eud-export-user-page_export', '_wpnonce-q-eud-export-user-page_export' );
+
+            // build argument array ##
+            $args = array(
+                'fields' => 'all_with_meta',
+                'role' => stripslashes( $_POST['role'] )
+            );
+
+            // did the user request a specific program ? ##
+            if ( isset( $_POST['program'] ) && $_POST['program'] != '' ) {
+
+                $args['meta_key'] = 'member_of_club';
+                $args['meta_value'] = (int)$_POST['program'];
+                $args['meta_compare'] = '=';
+
+            }
+
+            /* pre_user query */
+            add_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
+            $users = get_users( $args );
+            remove_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
+
+            /* no users found, so chuck and error into the args array */
+            if ( ! $users ) {
+
+                $referer = add_query_arg( 'error', 'empty', wp_get_referer() );
+                wp_redirect( $referer );
+                exit;
+
+            }
+
+            /* get sitename and clean it up */
+            $sitename = sanitize_key( get_bloginfo( 'name' ) );
+            if ( ! empty( $sitename ) ) {
+                $sitename .= '.';
+            }
+
+            // export method ? ##
+            $export_method = 'excel'; // default to Excel export ##
+            if ( isset( $_POST['format'] ) && $_POST['format'] != '' ) {
+
+                $export_method = $_POST['format'];
+
+            }
+
+            // set export filename structure ##
+            $filename = $sitename . 'users.' . date( 'Y-m-d-H-i-s' );
+
+            switch ( $export_method ) {
+
+                case "csv":
+
+                    // to csv ##
+                    header( 'Content-Description: File Transfer' );
+                    header( 'Content-Disposition: attachment; filename='.$filename.'.csv' );
+                    header( 'Content-Type: text/csv; charset=' . get_option( 'blog_charset' ), true );
+
+                    // set a csv check flag
+                    $is_csv = true;
+
+                    // nothing here
+                    $doc_begin  = '';
+
+                    //preformat
+                    $pre        = '';
+
+                    // how to seperate data ##
+                    $seperator = ','; // comma for csv ##
+
+                    // line break ##
+                    $breaker = "\n";
+
+                    // nothing here
+                    $doc_end  = '';
+
+                    break;
+
+                case ('excel'):
+
+                    // to xls ##
+                    
+                    header( 'Content-Description: File Transfer' );
+                    header("Content-Type: application/vnd.ms-excel");
+                    header("Content-Disposition: attachment; filename=$filename.xls");  
+                    header("Pragma: no-cache"); 
+                    header("Expires: 0");
+                    #echo "\xEF\xBB\xBF"; // UTF-8 BOM ##
+                    
+                    
+                    // set a csv check flag
+                    $is_csv = false;
+
+                    //grab the template file (for tidy formatting)
+                    include( 'xml-template.php' );
+
+                    // open xml
+                    $doc_begin  = $xml_doc_begin;
+
+                    //preformat
+                    $pre        = $xml_pre;
+
+                    // how to seperate data ##
+                    $seperator  = $xml_seperator;
+
+                    // line break ##
+                    $breaker    = $xml_breaker;
+
+                    // close xml
+                    $doc_end    = $xml_doc_end;
+
+                    break;
+
+            }
+
+
+            // function to exclude data ## 
+            $exclude_data = apply_filters( 'q_eud_exclude_data', array() );
+
+            // check for selected usermeta fields ##
+            $usermeta = isset( $_POST['usermeta'] ) ? $_POST['usermeta']: '';
+            $usermeta_fields = array();
+
+            if ( $usermeta && is_array($usermeta) ) {
+                foreach( $usermeta as $field ) {
+                    $usermeta_fields[] = $field;
+                }
+            }
+
+            // check for selected x profile fields ##
+            $bp_fields = isset( $_POST['bp_fields'] ) ? $_POST['bp_fields'] : '';
+            $bp_fields_passed = array();
+            if ( $bp_fields && is_array($bp_fields) ) {
+
+                foreach( $bp_fields as $field ) {
+
+                    // reverse tidy ##
+                    $field = str_replace( '__', ' ', $field );
+
+                    // add to array ##
+                    $bp_fields_passed[] = $field;
+
+                }
+
+            }
+
+            // cwjordan: check for x profile fields we want update time for ##
+            $bp_fields_update = isset( $_POST['bp_fields_update_time'] ) ? $_POST['bp_fields_update_time'] : '';
+            $bp_fields_update_passed = array();
+            if ( $bp_fields_update && is_array($bp_fields_update ) ) {
+
+                foreach( $bp_fields_update as $field ) {
+
+                    // reverse tidy ##
+                    $field = str_replace( '__', ' ', $field );
+
+                    // add to array ##
+                    $bp_fields_update_passed[] = $field . " Update Date";
+
+                }
+
+            }
+
+            // global wpdb object ##
+            global $wpdb;
+
+            // exportable user data ##
+            $data_keys = array(
+                'ID'
+                , 'user_login'
+                #, 'user_pass'
+                ,'user_nicename'
+                , 'user_email'
+                , 'user_url'
+                ,'user_registered'
+                #, /*'user_activation_key',*/ /*'user_status',*/
+                ,'display_name'
+            );
+
+            // compile final fields list ##
+            $fields = array_merge( $data_keys, $usermeta_fields, $bp_fields_passed, $bp_fields_update_passed );
+
+            // build the document headers ##
+            $headers = array();
+
+            foreach ( $fields as $key => $field ) {
+
+                // rename programs field ##
+                if ( $field == 'member_of_club' ){
+                    $field = 'Program';
+                }
+
+                if ( in_array( $field, $exclude_data ) ) {
+
+                    unset( $fields[$key] );
+
+                } else {
+
+                    if ( $is_csv ) {
+
+                        $headers[] = '"' . $field . '"';
+
+                    } else {
+
+                        $headers[] = $field;
+                        #echo '<script>console.log("Echoing header cell: '.$field.'")</script>';
+
+                    }
+
+                }
+
+            }
+
+            //open doc wrapper..
+            echo $doc_begin;
+
+            // echo headers ##
+            echo $pre . implode( $seperator, $headers ) . $breaker;
+
+            // build row values for each user ##
+            foreach ( $users as $user ) {
+
+                $data = array();
+
+                foreach ( $fields as $field ) {
+
+                    // BP loaded ? ##
+                    if ( function_exists ('bp_is_active') ) {
+                        $bp_data = BP_XProfile_ProfileData::get_all_for_user($user->ID);
+                    }
+
+                    // check if this is a BP field ##
+                    if ( in_array( $field, $bp_fields_passed ) ) {
+
+                        $value = $bp_data[$field];
+
+                        if ( is_array( $value ) ) {
+                            $value = $value['field_data'];
                         }
-                        
-                        /* pre_user query */
-			add_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
-			$users = get_users( $args );
-			remove_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
+                        $value = $this->sanitize($value);
 
-                        /* no users found, so chuck and error into the args array */
-			if ( ! $users ) {
-                            
-                            $referer = add_query_arg( 'error', 'empty', wp_get_referer() );
-                            wp_redirect( $referer );
-                            exit;
-                            
-			}
+                    // check if this is a BP field we want update date for ##
+                    } elseif ( in_array( $field, $bp_fields_update_passed ) ) {
 
-                        /* get sitename and clean it up */
-			$sitename = sanitize_key( get_bloginfo( 'name' ) );
-			if ( ! empty( $sitename ) ) {
-                            $sitename .= '.';
-                        }
-                            
-                        // export method ? ##
-                        $export_method = 'excel'; // default to Excel export ##
-                        if ( isset( $_POST['format'] ) && $_POST['format'] != '' ) {
-                           
-                            $export_method = $_POST['format'];
-                            
-                        }
-                        
-                        // set export filename structure ##
-                        $filename = $sitename . 'users.' . date( 'Y-m-d-H-i-s' );
-                        
-                        switch ( $export_method ) {
-                        
-                            case "csv":
-                            
-                                // to csv ##
-                                header( 'Content-Description: File Transfer' );
-                                header( 'Content-Disposition: attachment; filename='.$filename.'.csv' );
-                                header( 'Content-Type: text/csv; charset=' . get_option( 'blog_charset' ), true );
+                        global $bp;
 
-                                // how to seperate data ##
-                                $seperator = ','; // comma for csv ##
+                        $real_field = str_replace(" Update Date", "", $field);
+                        $field_id = xprofile_get_field_id_from_name( $real_field );
+                        $value = $wpdb->get_var ($wpdb->prepare( "SELECT last_updated FROM {$bp->profile->table_name_data} WHERE user_id = %d AND field_id = %d", $user->ID, $field_id ) );
+                    // user data or usermeta ##
+                    } else { 
 
-                                break;
-                            
-                            case ('excel'):
-                        
-                                // to xls ##
-                                header( 'Content-Description: File Transfer' );
-                                header("Content-Type: application/vnd.ms-excel");
-                                header("Content-Disposition: attachment; filename=$filename.xls");  
-                                header("Pragma: no-cache"); 
-                                header("Expires: 0");
-                                #echo "\xEF\xBB\xBF"; // UTF-8 BOM ##
+                        $value = isset( $user->{$field} ) ? $user->{$field} : '';
+                        $value = is_array( $value ) ? serialize( $value ) : $value;
 
-                                // how to seperate data ##
-                                $seperator = "\t"; // tabbed character ##
+                    }
 
-                                break;
-                        
-                        }
-                        
-                        // line break ##
-                        $breaker = "\n";
+                    // correct program value to Program Name ##
+                    if ( $field == 'member_of_club' ) {
+                        $value = get_the_title($value);
+                    }
 
-                        // function to exclude data ## 
-			$exclude_data = apply_filters( 'q_eud_exclude_data', array() );
-                        
-                        // check for selected usermeta fields ##
-                        $usermeta = isset( $_POST['usermeta'] ) ? $_POST['usermeta']: '';
-                        $usermeta_fields = array();
-                        if ( $usermeta && is_array($usermeta) ) {
-                            foreach( $usermeta as $field ) {
-                                $usermeta_fields[] = $field;
-                            }
-                        }
-                        
-                        // check for selected x profile fields ##
-                        $bp_fields = isset( $_POST['bp_fields'] ) ? $_POST['bp_fields'] : '';
-                        $bp_fields_passed = array();
-                        if ( $bp_fields && is_array($bp_fields) ) {
-                            foreach( $bp_fields as $field ) {
+                    if ( $is_csv ) {
+                        $data[] = '"' . str_replace( '"', '""', $value ) . '"';
+                    } else {
+                        $data[] = $value;
+                    }
 
-                                // reverse tidy ##
-                                $field = str_replace( '__', ' ', $field );
+                }
 
-                                // add to array ##
-                                $bp_fields_passed[] = $field;
+                // echo row data ##
+                echo $pre . implode( $seperator, $data ) . $breaker;
 
-                            }
-                        }
-                        
-                        // cwjordan: check for x profile fields we want update time for ##
-			$bp_fields_update = isset( $_POST['bp_fields_update_time'] ) ? $_POST['bp_fields_update_time'] : '';
-			$bp_fields_update_passed = array();
-			if ( $bp_fields_update && is_array($bp_fields_update ) ) {
-			  foreach( $bp_fields_update as $field ) {
-                                // reverse tidy ##
-                                $field = str_replace( '__', ' ', $field );
-                                // add to array ##
-                                $bp_fields_update_passed[] = $field . " Update Date";
-			  }
-			}
-                        
-                        // global wpdb object ##
-			global $wpdb;
-                        
-                        // exportable user data ##
-			$data_keys = array(
-                            'ID', 'user_login', 'user_pass',
-                            'user_nicename', 'user_email', 'user_url',
-                            'user_registered', /*'user_activation_key',*/ /*'user_status',*/
-                            'display_name'
-			);
-                        
-                        // compile final fields list ##
-			$fields = array_merge( $data_keys, $usermeta_fields, $bp_fields_passed, $bp_fields_update_passed );
-                        
-                        // build the document headers ##
-			$headers = array();
-			foreach ( $fields as $key => $field ) {
-                            
-                            // rename programs field ##
-                            if ( $field == 'member_of_club' ){
-                                $field = 'Program';
-                            }
+            }
 
-                            if ( in_array( $field, $exclude_data ) )
-                                unset( $fields[$key] );
-                            else
-                                $headers[] = '"' . $field . '"';
-                            
-			}
-                        
-                        // echo headers ##
-			echo implode( $seperator, $headers ) . $breaker;
+            // close doc wrapper..            
+            echo $doc_end;
 
-                        // build row values for each user ##
-			foreach ( $users as $user ) {
-                            
-                            $data = array();
-                            foreach ( $fields as $field ) {
-                                
-                                // BP loaded ? ##
-                                if ( function_exists ('bp_is_active') ) {
-                                    $bp_data = BP_XProfile_ProfileData::get_all_for_user($user->ID);
-                                }
-                                
-                                // check if this is a BP field ##
-                                if ( in_array( $field, $bp_fields_passed ) ) {
-                                    
-                                    $value = $bp_data[$field];
-
-                                    if (is_array($value)) {
-                                        $value = $value['field_data'];
-                                    }
-                                    $value = $this->sanitize($value);
-				// check if this is a BP field we want update date for ##
-				} elseif ( in_array( $field, $bp_fields_update_passed ) ) {
-				    global $bp;
-				    $real_field = str_replace(" Update Date", "", $field);
-				    $field_id = xprofile_get_field_id_from_name( $real_field );
-				    $value = $wpdb->get_var ($wpdb->prepare( "SELECT last_updated FROM {$bp->profile->table_name_data} WHERE user_id = %d AND field_id = %d", $user->ID, $field_id ) );
-                                // user data or usermeta ##
-                                } else { 
-                                 
-                                    $value = isset( $user->{$field} ) ? $user->{$field} : '';
-                                    $value = is_array( $value ) ? serialize( $value ) : $value;
-        
-                                }
-                                    
-                                // correct program value to Program Name ##
-                                if ( $field == 'member_of_club' ){
-                                    $value = get_the_title($value);
-                                }
-                                
-                                $data[] = '"' . str_replace( '"', '""', $value ) . '"';
-                                
-                            }
-
-                            // echo row data ##
-                            echo implode( $seperator, $data ) . $breaker;
-			}
-                        
-                        // stop PHP, so file can export correctly ##
-			exit;
-		}
-	}
+            // stop PHP, so file can export correctly ##
+            exit;
+                
+            
+        }
 
 	/**
 	 * Content of the settings page
@@ -620,12 +701,16 @@ class Q_EUD_Export_Users {
         
         // data to exclude from export ##
 	public function exclude_data() {
+            
             $exclude = array( 'user_pass', 'user_activation_key' );
             return $exclude;
+            
 	}
 
+        
 	public function pre_user_query( $user_search ) {
-		global $wpdb;
+            
+            global $wpdb;
 
             $where = '';
 
@@ -639,29 +724,34 @@ class Q_EUD_Export_Users {
                 $user_search->query_where = str_replace( 'WHERE 1=1', "WHERE 1=1 $where", $user_search->query_where );
 
             return $user_search;
+            
 	}
 
+        
 	private function export_date_options() {
-		global $wpdb, $wp_locale;
+            
+            global $wpdb, $wp_locale;
 
-		$months = $wpdb->get_results( "
-                    SELECT DISTINCT YEAR( user_registered ) AS year, MONTH( user_registered ) AS month
-                    FROM $wpdb->users
-                    ORDER BY user_registered DESC
-		" );
+            $months = $wpdb->get_results( "
+                SELECT DISTINCT YEAR( user_registered ) AS year, MONTH( user_registered ) AS month
+                FROM $wpdb->users
+                ORDER BY user_registered DESC
+            " );
 
-		$month_count = count( $months );
-		if ( !$month_count || ( 1 == $month_count && 0 == $months[0]->month ) )
-                    return;
+            $month_count = count( $months );
+            if ( !$month_count || ( 1 == $month_count && 0 == $months[0]->month ) )
+                return;
 
-		foreach ( $months as $date ) {
-                    if ( 0 == $date->year )
-                        continue;
+            foreach ( $months as $date ) {
+                if ( 0 == $date->year )
+                    continue;
 
-                    $month = zeroise( $date->month, 2 );
-                    echo '<option value="' . $date->year . '-' . $month . '">' . $wp_locale->get_month( $month ) . ' ' . $date->year . '</option>';
-		}
+                $month = zeroise( $date->month, 2 );
+                echo '<option value="' . $date->year . '-' . $month . '">' . $wp_locale->get_month( $month ) . ' ' . $date->year . '</option>';
+            }
+                
 	}
+        
 }
 
 /* instatiate class object */
