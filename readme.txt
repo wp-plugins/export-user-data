@@ -29,22 +29,20 @@ For feature request and bug reports, [please use the forums](http://wordpress.or
 For an automatic installation through WordPress:
 
 1. Go to the 'Add New' plugins screen in your WordPress admin area
-1. Search for 'Export User Data'
-1. Click 'Install Now' and activate the plugin
-1. Go the 'Users' menu, under 'Export User Data'
-
+2. Search for 'Export User Data'
+3. Click 'Install Now' and activate the plugin
+4. Go the 'Users' menu, under 'Export User Data'
 
 For a manual installation via FTP:
 
 1. Upload the `export-user-data` directory to the `/wp-content/plugins/` directory
-1. Activate the plugin through the 'Plugins' screen in your WordPress admin area
-1. Go the 'Users' menu, under 'Export User Data'
-
+2. Activate the plugin through the 'Plugins' screen in your WordPress admin area
+3. Go the 'Users' menu, under 'Export User Data'
 
 To upload the plugin through WordPress, instead of FTP:
 
 1. Upload the downloaded zip file on the 'Add New' plugins screen (see the 'Upload' tab) in your WordPress admin area and activate.
-1. Go the 'Users' menu, under 'Export User Data'
+2. Go the 'Users' menu, under 'Export User Data'
 
 == Frequently Asked Questions ==
 
