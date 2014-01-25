@@ -60,6 +60,7 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 
 = 0.8.1 =
 * Added experimental range limiter for exports
+* Extra input data sanitizing
 
 = 0.8 =
 * moved plugin instatiation to the WP hook: init

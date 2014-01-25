@@ -175,7 +175,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             // build argument array ##
             $args = array(
                 'fields'    => 'all_with_meta',
-                'role'      => stripslashes( $_POST['role'] )
+                'role'      => sanitize_text_field( $_POST['role'] )
             );
 
             // did they request a specific program ? ##
@@ -188,12 +188,20 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             }
 
             // is the a range limit in place for the export ? ##
-            if ( isset( $_POST['limit_from'] ) && isset( $_POST['limit_to'] ) ) {
+            if ( isset( $_POST['limit_from'] ) && $_POST['limit_from'] != '' && isset( $_POST['limit_to'] ) && $_POST['limit_to'] != '' ) {
                 
-                $args['offset'] = (int)$_POST['limit_from'];
-                $args['number'] = (int)$_POST['limit_to'] - (int)$_POST['limit_from'];
+                // let's just make sure they are integer values ##
+                $limit_from = (int)$_POST['limit_from'];
+                $limit_to = (int)$_POST['limit_to'];
                 
-                #wp_die(pr($args));
+                if ( is_int( $limit_from ) && is_int( $limit_to ) ) {
+                
+                    $args['offset'] = $limit_from;
+                    $args['number'] = $limit_to - $limit_from;
+
+                    #wp_die(pr($args));
+                
+                }
                 
             }
             
@@ -221,7 +229,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             $export_method = 'excel'; // default to Excel export ##
             if ( isset( $_POST['format'] ) && $_POST['format'] != '' ) {
 
-                $export_method = $_POST['format'];
+                $export_method = sanitize_text_field( $_POST['format'] );
 
             }
 
@@ -296,7 +304,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             $exclude_data = apply_filters( 'q_eud_exclude_data', array() );
 
             // check for selected usermeta fields ##
-            $usermeta = isset( $_POST['usermeta'] ) ? $_POST['usermeta']: '';
+            $usermeta = isset( $_POST['usermeta'] ) ? sanitize_text_field ( $_POST['usermeta'] ): '';
             $usermeta_fields = array();
 
             if ( $usermeta && is_array($usermeta) ) {
@@ -306,7 +314,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             }
 
             // check for selected x profile fields ##
-            $bp_fields = isset( $_POST['bp_fields'] ) ? $_POST['bp_fields'] : '';
+            $bp_fields = isset( $_POST['bp_fields'] ) ? sanitize_text_field ( $_POST['bp_fields'] ) : '';
             $bp_fields_passed = array();
             if ( $bp_fields && is_array($bp_fields) ) {
 
@@ -323,7 +331,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             }
 
             // cwjordan: check for x profile fields we want update time for ##
-            $bp_fields_update = isset( $_POST['bp_fields_update_time'] ) ? $_POST['bp_fields_update_time'] : '';
+            $bp_fields_update = isset( $_POST['bp_fields_update_time'] ) ? sanitize_text_field ( $_POST['bp_fields_update_time'] ) : '';
             $bp_fields_update_passed = array();
             if ( $bp_fields_update && is_array( $bp_fields_update ) ) {
 
@@ -810,10 +818,10 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             $where = '';
 
             if ( ! empty( $_POST['start_date'] ) )
-                $where .= $wpdb->prepare( " AND $wpdb->users.user_registered >= %s", date( 'Y-m-d', strtotime( $_POST['start_date'] ) ) );
+                $where .= $wpdb->prepare( " AND $wpdb->users.user_registered >= %s", date( 'Y-m-d', strtotime( sanitize_text_field ( $_POST['start_date'] ) ) ) );
 
             if ( ! empty( $_POST['end_date'] ) )
-                $where .= $wpdb->prepare( " AND $wpdb->users.user_registered < %s", date( 'Y-m-d', strtotime( '+1 month', strtotime( $_POST['end_date'] ) ) ) );
+                $where .= $wpdb->prepare( " AND $wpdb->users.user_registered < %s", date( 'Y-m-d', strtotime( '+1 month', strtotime( sanitize_text_field ( $_POST['end_date'] ) ) ) ) );
 
             if ( ! empty( $where ) )
                 $user_search->query_where = str_replace( 'WHERE 1=1', "WHERE 1=1 $where", $user_search->query_where );
