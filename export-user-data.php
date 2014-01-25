@@ -22,7 +22,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
     if ( is_admin() ) {
     
         // instatiate plugin via WP hook - not too early, not too late ##
-        add_action( 'init', array ( 'Q_EUD_Export_Users', 'init' ), 0 ); // load late to allow Q Framework to come first ##
+        add_action( 'init', array ( 'Q_EUD_Export_Users', 'init' ), 0 ); 
 
     }
     
