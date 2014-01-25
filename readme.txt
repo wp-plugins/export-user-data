@@ -22,7 +22,9 @@ Includes an option to export the users by role, registration date range, usermet
 * Exports users by date range
 * Export user BuddyPress xProfile data
 
-For feature request and bug reports, [please use the forums](http://wordpress.org/tags/export-users-data).
+For feature request and bug reports, [please use the WP Support Website](http://www.wp-support.co/view/categories/export-user-data).
+
+Please do not use the Wordpress.org forum to report bugs, as we no longer monitor or respond to questions there.
 
 == Installation ==
 
