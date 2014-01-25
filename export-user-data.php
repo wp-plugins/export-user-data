@@ -4,7 +4,7 @@
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.8
+Version: 0.8.1
 Author: Q Studio
 Author URI: http://qstudio.us
 License: GPL2
@@ -18,11 +18,11 @@ defined( 'ABSPATH' ) OR exit;
 if ( ! class_exists( 'Q_EUD_Export_Users' ) ) 
 {
 
-    // instatiate class via hook, only if is_admin() returns true
+    // instatiate class via hook, only if inside admin
     if ( is_admin() ) {
     
         // instatiate plugin via WP hook - not too early, not too late ##
-        add_action( 'init', array ( 'Q_EUD_Export_Users', 'init' ), 0 );
+        add_action( 'init', array ( 'Q_EUD_Export_Users', 'init' ), 0 ); 
 
     }
     
@@ -178,7 +178,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                 'role'      => stripslashes( $_POST['role'] )
             );
 
-            // did the user request a specific program ? ##
+            // did they request a specific program ? ##
             if ( isset( $_POST['program'] ) && $_POST['program'] != '' ) {
 
                 $args['meta_key'] = 'member_of_club';
@@ -187,6 +187,16 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
 
             }
 
+            // is the a range limit in place for the export ? ##
+            if ( isset( $_POST['limit_from'] ) && isset( $_POST['limit_to'] ) ) {
+                
+                $args['offset'] = (int)$_POST['limit_from'];
+                $args['number'] = (int)$_POST['limit_to'] - (int)$_POST['limit_from'];
+                
+                #wp_die(pr($args));
+                
+            }
+            
             /* pre_user query */
             add_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
             $users = get_users( $args );
@@ -719,6 +729,41 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                         </select>
                     </td>
                 </tr>
+                
+                <tr valign="top">
+                    <th scope="row"><label><?php _e( 'Limit Range', 'export-user-data' ); ?></label></th>
+                    <td>
+                        <input name="limit_from" type="text" id="q_eud_users_limit_from" value="" class="regular-text code numeric" style="width: 136px;" placeholder="<?php _e( 'From', 'export-user-data' ); ?>">
+                        <input name="limit_to" type="text" id="q_eud_users_limit_to" value="" class="regular-text code numeric" style="width: 136px;" placeholder="<?php _e( 'To', 'export-user-data' ); ?>">
+                    </td>
+                </tr>
+                <script>
+                    
+                // lazy load in some jQuery validation ##
+                jQuery(document).ready(function($) {
+                    
+                    $("input.numeric").blur(function() {
+                        
+                        //console.log("you entered "+ $(this).val());
+                        
+                        if ( ! $.isNumeric( $(this).val() ) ) {
+                            
+                            //console.log("this IS NOT a number");
+                            $(this).css({ 'background': 'red', 'color': 'white' }); // highlight error ##
+                            $("p.submit .button-primary").attr('disabled','disabled'); // disable submit ##
+                            
+                        } else {
+                            
+                            $(this).css({ 'background': 'white', 'color': '#333' }); // remove error highlighting ##
+                            $("p.submit .button-primary").removeAttr('disabled'); // enable submit ##
+                            
+                        }
+                      
+                    });
+                    
+                });
+                
+                </script>
 
                 <tr valign="top">
                     <th scope="row"><label for="q_eud_users_format"><?php _e( 'Format', 'export-user-data' ); ?></label></th>
