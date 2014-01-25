@@ -187,7 +187,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
 
             }
 
-            // is the a range limit in place for the export ? ##
+            // is there a range limit in place for this export ? ##
             if ( isset( $_POST['limit_from'] ) && $_POST['limit_from'] != '' && isset( $_POST['limit_to'] ) && $_POST['limit_to'] != '' ) {
                 
                 // let's just make sure they are integer values ##
