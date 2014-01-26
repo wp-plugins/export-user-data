@@ -4,7 +4,7 @@
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.8.2
+Version: 0.8.3
 Author: Q Studio
 Author URI: http://qstudio.us
 License: GPL2
@@ -148,16 +148,16 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             }
 
             // is the a range limit in place for the export ? ##
-            if ( isset( $_POST['limit_from'] ) && $_POST['limit_from'] != '' && isset( $_POST['limit_to'] ) && $_POST['limit_to'] != '' ) {
+            if ( isset( $_POST['limit_offset'] ) && $_POST['limit_offset'] != '' && isset( $_POST['limit_total'] ) && $_POST['limit_total'] != '' ) {
                 
                 // let's just make sure they are integer values ##
-                $limit_from = (int)$_POST['limit_from'];
-                $limit_to = (int)$_POST['limit_to'];
+                $limit_offset = (int)$_POST['limit_offset'];
+                $limit_total = (int)$_POST['limit_total'];
                 
-                if ( is_int( $limit_from ) && is_int( $limit_to ) ) {
+                if ( is_int( $limit_offset ) && is_int( $limit_total ) ) {
                 
-                    $args['offset'] = $limit_from;
-                    $args['number'] = $limit_to - $limit_from;
+                    $args['offset'] = $limit_offset;
+                    $args['number'] = $limit_total - $limit_offset;
 
                     #wp_die(pr($args));
                 
@@ -726,11 +726,11 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                 <tr valign="top" class="toggleable">
                     <th scope="row"><label><?php _e( 'Limit Range', 'export-user-data' ); ?></label></th>
                     <td>
-                        <input name="limit_from" type="text" id="q_eud_users_limit_from" value="" class="regular-text code numeric" style="width: 136px;" placeholder="<?php _e( 'From', 'export-user-data' ); ?>">
-                        <input name="limit_to" type="text" id="q_eud_users_limit_to" value="" class="regular-text code numeric" style="width: 136px;" placeholder="<?php _e( 'To', 'export-user-data' ); ?>">
+                        <input name="limit_offset" type="text" id="q_eud_users_limit_offset" value="" class="regular-text code numeric" style="width: 136px;" placeholder="<?php _e( 'Offset', 'export-user-data' ); ?>">
+                        <input name="limit_total" type="text" id="q_eud_users_limit_total" value="" class="regular-text code numeric" style="width: 136px;" placeholder="<?php _e( 'Total', 'export-user-data' ); ?>">
                         <p class="description"><?php 
                             printf( 
-                                __( 'Enter an offset start number and a total number to export. <a href="%s" target="_blank">%s</a>', 'export-user-data' )
+                                __( 'Enter an offset start number and a total number of users to export. <a href="%s" target="_blank">%s</a>', 'export-user-data' )
                                 ,   esc_html('http://codex.wordpress.org/Function_Reference/get_users#Parameters')
                                 ,   'Codex'
                             ); 
