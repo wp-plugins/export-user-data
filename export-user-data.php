@@ -4,7 +4,7 @@
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.8.1
+Version: 0.8.2
 Author: Q Studio
 Author URI: http://qstudio.us
 License: GPL2
@@ -67,6 +67,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                 add_filter( 'q_eud_exclude_data', array( $this, 'exclude_data' ) );
                 add_action( 'admin_enqueue_scripts', array( $this, 'add_css_and_js' ), 1 );
                 add_action( 'admin_footer', array( $this, 'jquery' ), 100000 );
+                add_action( 'admin_footer', array( $this, 'css' ), 100000 );
 
             }
 
@@ -114,48 +115,6 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
         }
 
 
-        /* jquery */
-        function jquery() 
-        {
-
-            // load the scripts on only the plugin admin page 
-            if (isset( $_GET['page'] ) && ( $_GET['page'] == 'export-user-data' ) ) {
-?>
-        <script>
-
-            // build super multiselect ##
-            jQuery('#usermeta, #bp_fields, #bp_fields_update_time').multiSelect();
-
-            // show only common ##
-            jQuery('.usermeta-common').click(function(e){
-                e.preventDefault();
-                jQuery('#ms-usermeta .ms-selectable li.system').hide();
-            });
-
-            // show all ##
-            jQuery('.usermeta-all').click(function(e){
-                e.preventDefault();
-                jQuery('#ms-usermeta .ms-selectable li').show();
-            });
-
-            // toggle update options ##
-            jQuery(".toggle a").click( function(e) {
-                e.preventDefault();
-                $toggle = jQuery(this).parent().next("div.select");
-                $toggle.toggle();
-                if ( $toggle.is(":visible") ) {
-                    jQuery(this).text("Hide Date Options");
-                } else {
-                    jQuery(this).text("Show Date Options");
-                }
-            });
-
-        </script>
-<?php
-            }
-
-        }
-
         /**
          * Process content of CSV file
          *
@@ -174,7 +133,8 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
 
             // build argument array ##
             $args = array(
-                'fields'    => 'all_with_meta',
+                #'fields'    => 'all_with_meta',
+                'fields'    => 'all', // reduce initial data load and call up required fields inside the loop ##
                 'role'      => sanitize_text_field( $_POST['role'] )
             );
 
@@ -187,7 +147,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
 
             }
 
-            // is there a range limit in place for this export ? ##
+            // is the a range limit in place for the export ? ##
             if ( isset( $_POST['limit_from'] ) && $_POST['limit_from'] != '' && isset( $_POST['limit_to'] ) && $_POST['limit_to'] != '' ) {
                 
                 // let's just make sure they are integer values ##
@@ -304,24 +264,27 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             $exclude_data = apply_filters( 'q_eud_exclude_data', array() );
 
             // check for selected usermeta fields ##
-            $usermeta = isset( $_POST['usermeta'] ) ? sanitize_text_field ( $_POST['usermeta'] ): '';
+            $usermeta = isset( $_POST['usermeta'] ) ? $_POST['usermeta']: '';
             $usermeta_fields = array();
-
-            if ( $usermeta && is_array($usermeta) ) {
+           
+            if ( $usermeta && is_array( $usermeta ) ) {
                 foreach( $usermeta as $field ) {
-                    $usermeta_fields[] = $field;
+                    $usermeta_fields[] = sanitize_text_field ( $field  );
                 }
             }
+            
+            #pr($usermeta_fields);
+            #exit;
 
             // check for selected x profile fields ##
-            $bp_fields = isset( $_POST['bp_fields'] ) ? sanitize_text_field ( $_POST['bp_fields'] ) : '';
+            $bp_fields = isset( $_POST['bp_fields'] ) ? $_POST['bp_fields'] : '';
             $bp_fields_passed = array();
             if ( $bp_fields && is_array($bp_fields) ) {
 
                 foreach( $bp_fields as $field ) {
 
                     // reverse tidy ##
-                    $field = str_replace( '__', ' ', $field );
+                    $field = str_replace( '__', ' ', sanitize_text_field ( $field ) );
 
                     // add to array ##
                     $bp_fields_passed[] = $field;
@@ -331,14 +294,14 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
             }
 
             // cwjordan: check for x profile fields we want update time for ##
-            $bp_fields_update = isset( $_POST['bp_fields_update_time'] ) ? sanitize_text_field ( $_POST['bp_fields_update_time'] ) : '';
+            $bp_fields_update = isset( $_POST['bp_fields_update_time'] ) ? $_POST['bp_fields_update_time'] : '';
             $bp_fields_update_passed = array();
             if ( $bp_fields_update && is_array( $bp_fields_update ) ) {
 
                 foreach( $bp_fields_update as $field ) {
 
                     // reverse tidy ##
-                    $field = str_replace( '__', ' ', $field );
+                    $field = str_replace( '__', ' ', sanitize_text_field ( $field ) );
 
                     // add to array ##
                     $bp_fields_update_passed[] = $field . " Update Date";
@@ -417,7 +380,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                 foreach ( $fields as $field ) {
 
                     // check if this is a BP field ##
-                    if ( isset($bp_data) && isset($bp_data[$field]) && in_array( $field, $bp_fields_passed ) ) {
+                    if ( isset( $bp_data ) && isset( $bp_data[$field] ) && in_array( $field, $bp_fields_passed ) ) {
 
                         $value = $bp_data[$field];
 
@@ -426,7 +389,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                         }
                         $value = $this->sanitize($value);
 
-                    // check if this is a BP field we want update date for ##
+                    // check if this is a BP field we want the updated date for ##
                     } elseif ( in_array( $field, $bp_fields_update_passed ) ) {
 
                         global $bp;
@@ -596,6 +559,11 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                             }
 ?>
                         </select>
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Select the user meta keys to export, use the filters to simplify the list.', 'export-user-data' )
+                            ); 
+                        ?></p>
                     </td>
                 </tr>
 <?php
@@ -641,6 +609,11 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
 
 ?>
                         </select>
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Select the BuddyPress XProfile keys to export', 'export-user-data' )
+                            ); 
+                        ?></p>
                     </td>
                 </tr>
 <?php
@@ -648,27 +621,27 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                 // allow export of update times ##
 
 ?>
-                <tr valign="top">
+                <tr valign="top" class="toggleable">
                     <th scope="row">
                         <label for="q_eud_xprofile"><?php _e( 'BP xProfile Fields Update Time', 'export-user-data' ); ?></label>
                     </th>
                     <td>
-                        <div class="toggle">
-                            <a href="#"><?php _e( 'Show Date Options', 'export-user-data' ); ?></a>
-                        </div>
-                        <div class="select" style="display: none;">
-                            <select multiple="multiple" id="bp_fields_update_time" name="bp_fields_update_time[]">
-    <?php
+                        <select multiple="multiple" id="bp_fields_update_time" name="bp_fields_update_time[]">
+<?php
 
-                            foreach ( $bp_fields as $key ) {
+                        foreach ( $bp_fields as $key ) {
 
-                                echo "<option value='".esc_attr( $key )."' title='".esc_attr( $key )."'>$key</option>";
+                            echo "<option value='".esc_attr( $key )."' title='".esc_attr( $key )."'>$key</option>";
 
-                            }
+                        }
 
-    ?>
-                            </select>
-                        </div>
+?>
+                        </select>
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Select the BuddyPress XProfile keys updated dates to export', 'export-user-data' )
+                            ); 
+                        ?></p>
                     </td>
                 </tr>
 <?php		
@@ -676,7 +649,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                 } // BP installed and active ##
 
 ?>
-                <tr valign="top">
+                <tr valign="top" class="toggleable">
                     <th scope="row"><label for="q_eud_users_role"><?php _e( 'Role', 'export-user-data' ); ?></label></th>
                     <td>
                         <select name="role" id="q_eud_users_role">
@@ -690,6 +663,13 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
 
 ?>
                         </select>
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Filter the exported users by a WordPress Role. <a href="%s" target="_blank">%s</a>', 'export-user-data' )
+                                ,   esc_html('http://codex.wordpress.org/Roles_and_Capabilities')
+                                ,   'Codex'
+                            ); 
+                        ?></p>
                     </td>
                 </tr>
 <?php
@@ -698,7 +678,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                 if ( post_type_exists( 'club' ) ) {
 
 ?>
-                <tr valign="top">
+                <tr valign="top" class="toggleable">
                     <th scope="row"><label for="q_eud_users_program"><?php _e( 'Programs', 'export-user-data' ); ?></label></th>
                     <td>
                         <select name="program" id="q_eud_users_program">
@@ -724,7 +704,7 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                 } // clubs ##
 
 ?>
-                <tr valign="top">
+                <tr valign="top" class="toggleable">
                     <th scope="row"><label><?php _e( 'Registered', 'export-user-data' ); ?></label></th>
                     <td>
                         <select name="start_date" id="q_eud_users_start_date">
@@ -735,43 +715,28 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
                             <option value="0"><?php _e( 'End Date', 'export-user-data' ); ?></option>
                             <?php $this->export_date_options(); ?>
                         </select>
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Pick a start and end user registration date to limit the results.', 'export-user-data' )
+                            ); 
+                        ?></p>
                     </td>
                 </tr>
                 
-                <tr valign="top">
+                <tr valign="top" class="toggleable">
                     <th scope="row"><label><?php _e( 'Limit Range', 'export-user-data' ); ?></label></th>
                     <td>
                         <input name="limit_from" type="text" id="q_eud_users_limit_from" value="" class="regular-text code numeric" style="width: 136px;" placeholder="<?php _e( 'From', 'export-user-data' ); ?>">
                         <input name="limit_to" type="text" id="q_eud_users_limit_to" value="" class="regular-text code numeric" style="width: 136px;" placeholder="<?php _e( 'To', 'export-user-data' ); ?>">
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Enter an offset start number and a total number to export. <a href="%s" target="_blank">%s</a>', 'export-user-data' )
+                                ,   esc_html('http://codex.wordpress.org/Function_Reference/get_users#Parameters')
+                                ,   'Codex'
+                            ); 
+                        ?></p>
                     </td>
                 </tr>
-                <script>
-                    
-                // lazy load in some jQuery validation ##
-                jQuery(document).ready(function($) {
-                    
-                    $("input.numeric").blur(function() {
-                        
-                        //console.log("you entered "+ $(this).val());
-                        
-                        if ( ! $.isNumeric( $(this).val() ) ) {
-                            
-                            //console.log("this IS NOT a number");
-                            $(this).css({ 'background': 'red', 'color': 'white' }); // highlight error ##
-                            $("p.submit .button-primary").attr('disabled','disabled'); // disable submit ##
-                            
-                        } else {
-                            
-                            $(this).css({ 'background': 'white', 'color': '#333' }); // remove error highlighting ##
-                            $("p.submit .button-primary").removeAttr('disabled'); // enable submit ##
-                            
-                        }
-                      
-                    });
-                    
-                });
-                
-                </script>
 
                 <tr valign="top">
                     <th scope="row"><label for="q_eud_users_format"><?php _e( 'Format', 'export-user-data' ); ?></label></th>
@@ -784,17 +749,126 @@ if ( ! class_exists( 'Q_EUD_Export_Users' ) )
 
 ?>
                         </select>
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Select the format for the export file.', 'export-user-data' )
+                            ); 
+                        ?></p>
                     </td>
                 </tr>
+                
+                <tr valign="top">
+                    <th scope="row">
+                        <label for="q_eud_xprofile"><?php _e( 'Advanced Options', 'export-user-data' ); ?></label>
+                    </th>
+                    <td>
+                        <div class="toggle">
+                            <a href="#"><?php _e( 'Show', 'export-user-data' ); ?></a>
+                        </div>
+                    </td>
+                </tr>
+                
             </table>
             <p class="submit">
                 <input type="hidden" name="_wp_http_referer" value="<?php echo $_SERVER['REQUEST_URI'] ?>" />
                 <input type="submit" class="button-primary" value="<?php _e( 'Export', 'export-user-data' ); ?>" />
             </p>
         </form>
+        
 <?php
         }
 
+        
+         /**
+         * Inline jQuery
+         * @since       0.8.2
+         */
+        function jquery() 
+        {
+
+            // load the scripts on only the plugin admin page 
+            if (isset( $_GET['page'] ) && ( $_GET['page'] == 'export-user-data' ) ) {
+?>
+        <script>
+            
+        // lazy load in some jQuery validation ##
+        jQuery(document).ready(function($) {
+
+            // build super multiselect ##
+            jQuery('#usermeta, #bp_fields, #bp_fields_update_time').multiSelect();
+
+            // show only common ##
+            jQuery('.usermeta-common').click(function(e){
+                e.preventDefault();
+                jQuery('#ms-usermeta .ms-selectable li.system').hide();
+            });
+
+            // show all ##
+            jQuery('.usermeta-all').click(function(e){
+                e.preventDefault();
+                jQuery('#ms-usermeta .ms-selectable li').show();
+            });
+
+            // validate number inputs ##
+            $("input.numeric").blur(function() {
+
+                //console.log("you entered "+ $(this).val());
+
+                if ( $(this).val() && ! $.isNumeric( $(this).val() ) ) {
+
+                    //console.log("this IS NOT a number");
+                    $(this).css({ 'background': 'red', 'color': 'white' }); // highlight error ##
+                    $("p.submit .button-primary").attr('disabled','disabled'); // disable submit ##
+
+                } else {
+
+                    $(this).css({ 'background': 'white', 'color': '#333' }); // remove error highlighting ##
+                    $("p.submit .button-primary").removeAttr('disabled'); // enable submit ##
+
+                }
+
+            });
+            
+            // toggle advanced options ##
+            jQuery(".toggle a").click( function(e) {
+                e.preventDefault();
+                $toggleable = jQuery("tr.toggleable");
+                $toggleable.toggle();
+                if ( $toggleable.is(":visible") ) {
+                    jQuery(this).text("<?php _e( 'Hide', 'export-user-data' ); ?>");
+                } else {
+                    jQuery(this).text("<?php _e( 'Show', 'export-user-data' ); ?>");
+                }
+            });
+
+        });
+
+        </script>
+<?php
+            }
+
+        }
+        
+        
+        /** 
+         * Inline CSS
+         * @since       0.8.2
+         */
+        function css() 
+        {
+
+            // load the scripts on only the plugin admin page 
+            if (isset( $_GET['page'] ) && ( $_GET['page'] == 'export-user-data' ) ) {
+?>
+        <style>
+            .toggleable { display: none; }
+        </style>
+<?php
+            }
+
+        }
+        
+        
         /**
          * Data to exclude from export
          */
