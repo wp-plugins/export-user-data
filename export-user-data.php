@@ -573,8 +573,9 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                                     if ( strpos( $key, $drop ) !== false ) {
 
                                         #echo 'FOUND -- '.$drop.' in '.$key.'<br />';
-
-                                        if(($key = array_search($key, $meta_keys)) !== false) {
+                                        // https://wordpress.org/support/topic/bugfix-numbers-in-export-headers?replies=1
+                                        // removed $key = assignment, as not required ##
+                                        if(( array_search($key, $meta_keys)) !== false ) {
 
                                             $usermeta_class = 'system';
 
