@@ -3,7 +3,7 @@ Contributors: qlstudio
 Tags: user, users, xprofile, usermeta csv, excel, batch, export, save, download
 Requires at least: 3.2
 Tested up to: 3.9.0
-Stable tag: 0.9.1
+Stable tag: 0.9.2
 License: GPLv2
 
 Export users data, metadata and buddypress xprofile data to a csv or Excel file
@@ -57,6 +57,9 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 1. User export screen
 
 == Changelog ==
+
+= 0.9.2 =
+* removed $key assignment casting to integer
 
 = 0.9.1 =
 * Tested with WP 3.9
