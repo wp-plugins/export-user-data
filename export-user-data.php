@@ -74,7 +74,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 
                 add_action( 'init', array( $this, 'load_plugin_textdomain' ) );  
                 add_action( 'admin_menu', array( $this, 'add_admin_pages' ) );
-                add_action( 'init', array( $this, 'generate_data' ) );
+                add_action( 'init', array( $this, 'generate_data' ), 1 );
                 add_filter( 'q_eud_exclude_data', array( $this, 'exclude_data' ) );
                 add_action( 'admin_enqueue_scripts', array( $this, 'add_css_and_js' ), 1 );
                 add_action( 'admin_footer', array( $this, 'jquery' ), 100000 );
@@ -147,18 +147,13 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         public function generate_data() 
         {
             
-            // hack to avoid BP error ##
-            // http://wordpress.org/support/topic/blank-page-107?replies=5#post-5526525
-            if ( !defined ( "DOING_AJAX" ) ) { 
-                define( 'DOING_AJAX', true );
-            }
-            
             if ( ! isset( $_POST['_wpnonce-q-eud-export-user-page_export'] ) ) { 
-
+                
                 return false;
 
             }
-
+            
+            // check admin referer ##
             check_admin_referer( 'q-eud-export-user-page_export', '_wpnonce-q-eud-export-user-page_export' );
 
             // build argument array ##
