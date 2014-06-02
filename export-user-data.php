@@ -4,7 +4,7 @@
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.9.3
+Version: 0.9.4
 Author: Q Studio
 Author URI: http://qstudio.us
 License: GPL2
@@ -19,7 +19,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 {
     
     // plugin version
-    define( 'Q_EXPORT_USER_DATA_VERSION', '0.9.3' ); // version ##
+    define( 'Q_EXPORT_USER_DATA_VERSION', '0.9.4' ); // version ##
     
     // instatiate class via hook, only if inside admin
     if ( is_admin() ) {
@@ -40,10 +40,10 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         
         // Refers to a single instance of this class. ##
         private static $instance = null;
-        
-        
+                
         /* properties */
         public $text_domain = 'export-user-data'; // for translation ##
+        #public $q_eud_options = array(); // export settings ##
         
         
         /**
@@ -74,7 +74,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 
                 add_action( 'init', array( $this, 'load_plugin_textdomain' ) );  
                 add_action( 'admin_menu', array( $this, 'add_admin_pages' ) );
-                add_action( 'init', array( $this, 'generate_data' ), 1 );
+                add_action( 'init', array( $this, 'generate_data' ) );
                 add_filter( 'q_eud_exclude_data', array( $this, 'exclude_data' ) );
                 add_action( 'admin_enqueue_scripts', array( $this, 'add_css_and_js' ), 1 );
                 add_action( 'admin_footer', array( $this, 'jquery' ), 100000 );
@@ -111,7 +111,9 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         }
 
 
-        /* style and interaction */
+        /**
+         * style and interaction 
+         */
         public function add_css_and_js( $hook ) 
         {
 
@@ -127,7 +129,9 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         }
 
 
-        /* clean that stuff up ## */
+        /**
+         * clean that stuff up
+         */
         public function sanitize( $value ) 
         {
 
@@ -138,7 +142,87 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 
         }
 
+        
+        /**
+         * Check for a retrieve stored user options
+         * 
+         * @since       0.9.3
+         * @return      Mixed   false on error OR array of saved options
+         */
+        public function get_user_options()
+        {
+            
+            // check if the user wants to, or has previously saved the export field list ##
+            $user_ID = get_current_user_id();
+            
+            // no user - go return false ##
+            if ( ! $user_ID ) { return false; }
+            
+            // return an empty array, if nothing found ##
+            return get_option( 'q_eud_options_'.$user_ID, array() );
+            
+        }
+        
+        
+        /**
+         * method to store user options
+         * 
+         * @since       0.9.3
+         * @return      Boolean
+         */
+        public function set_user_options( $value = null )
+        {
+            
+            // nothing cooking ##
+            if ( is_null( $value ) ) {
+                
+                return false;
+                
+            }
+            
+            // add value to property ##
+            $this->q_eud_options[] = $value;
+            
+        }
+        
+        
+        /**
+         * method to save / update / delete user options
+         * 
+         * @since       0.9.3
+         * @return      Boolean
+         */
+        public function manage_user_options( $action = null )
+        {
+            
+            // nothing cooking ##
+            if ( is_null( $action ) ) {
+                
+                return false;
+                
+            }
+            
+            // check if the user wants to, or has previously saved the export field list ##
+            $user_ID = get_current_user_id();
+            
+            // no user - go return false ##
+            if ( ! $user_ID ) { return false; }
+            
+            // what action to take ##
+            switch ( $action ) {
+                
+                case ( 'save' ):
+                    
+                    update_option( 'q_eud_options_'.$user_ID, $this->q_eud_options );
+                    
+                break;
+                
+            }
+            
+        }
 
+        
+        
         /**
          * Process content of CSV file
          *
@@ -146,6 +230,12 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
          **/
         public function generate_data() 
         {
+            
+            #if ( ! current_user_can( 'list_users' ) ) {
+                
+                #wp_die( __( 'You do not have sufficient permissions to access this page.', $this->text_domain ) );
+                
+            #}
             
             if ( ! isset( $_POST['_wpnonce-q-eud-export-user-page_export'] ) ) { 
                 
@@ -155,7 +245,10 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             
             // check admin referer ##
             check_admin_referer( 'q-eud-export-user-page_export', '_wpnonce-q-eud-export-user-page_export' );
-
+            
+            // check for a retrieve user's stored options ##
+            #$q_eud_options = $this->get_user_options();
+            
             // build argument array ##
             $args = array(
                 #'fields'    => 'all_with_meta',
@@ -172,7 +265,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 
             }
 
-            // is the a range limit in place for the export ? ##
+            // is there a range limit in place for the export ? ##
             if ( isset( $_POST['limit_offset'] ) && $_POST['limit_offset'] != '' && isset( $_POST['limit_total'] ) && $_POST['limit_total'] != '' ) {
                 
                 // let's just make sure they are integer values ##
@@ -355,6 +448,22 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             // compile final fields list ##
             $fields = array_merge( $data_keys, $usermeta_fields, $bp_fields_passed, $bp_fields_update_passed );
 
+            // should we include the user's role in the export ##
+            /*
+            if ( isset( $_POST['q_eud_role'] ) && $_POST['q_eud_role'] != '' ) {
+                
+                // save this to stored options ( 'group', 'field', 'value' )##
+                $this->set_user_options( array( 'role' => array ( 'q_eud_role' => array ( 'yes' ) ) ) );
+                
+                // save options ##
+                $this->manage_user_options( 'save' );
+                
+                // add "Role" to the fields array ##
+                $fields[]["role"] = _e( 'Role', $this->text_domain );
+                
+            }
+            */
+            
             // build the document headers ##
             $headers = array();
 
@@ -423,6 +532,12 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                         $field_id = xprofile_get_field_id_from_name( $real_field );
                         $value = $wpdb->get_var ($wpdb->prepare( "SELECT last_updated FROM {$bp->profile->table_name_data} WHERE user_id = %d AND field_id = %d", $user->ID, $field_id ) );
 
+                    // include the user's role in the export ##
+                    } elseif ( isset( $_POST['q_eud_role'] ) && $_POST['q_eud_role'] != '' && $field == 'role' ){
+                        
+                        // add "Role" as $value ##
+                        $value = $user->roles[0] ? $user->roles[0] : '' ; // empty value if no role found ##
+                        
                     // user data or usermeta ##
                     } else { 
 
@@ -470,8 +585,11 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             if ( ! current_user_can( 'list_users' ) ) {
                 wp_die( __( 'You do not have sufficient permissions to access this page.', $this->text_domain ) );
             }
+            
+            // check for a retrieve user's stroed options ##
+            #$q_eud_options = $this->get_user_options();
+            
 ?>
-
         <div class="wrap">
         <h2><?php _e( 'Export User Data', $this->text_domain ); ?></h2>
 <?php
@@ -556,7 +674,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                                 }
 
                                 // tidy ##
-                                $display_key = str_replace( "_", " ", ucwords($display_key) );
+                                $display_key = str_replace( "_", " ", ucwords( $display_key ) );
 
                                 #echo "<label for='".esc_attr( $key )."' title='".esc_attr( $key )."'><input id='".esc_attr( $key )."' type='checkbox' name='usermeta[]' value='".esc_attr( $key )."'/> $display_key</label><br />";
 
@@ -570,7 +688,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                                         #echo 'FOUND -- '.$drop.' in '.$key.'<br />';
                                         // https://wordpress.org/support/topic/bugfix-numbers-in-export-headers?replies=1
                                         // removed $key = assignment, as not required ##
-                                        if(( array_search($key, $meta_keys)) !== false ) {
+                                        if ( ( array_search( $key, $meta_keys ) ) !== false ) {
 
                                             $usermeta_class = 'system';
 
@@ -765,6 +883,33 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                     </td>
                 </tr>
 
+                <tr valign="top" class="hidden">
+                    <th scope="row"><label for="q_eud_role"><?php _e( 'Include Role', $this->text_domain ); ?></label></th>
+                    <td>
+                        <input id='q_eud_role' type='checkbox' name='q_eud_role' value=''/></label>
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Checking this option will add a column that includes the user\'s role.', $this->text_domain )
+                            ); 
+                        ?></p>
+                    </td>
+                </tr>
+                </tr>
+                
+                <tr valign="top" class="hidden">
+                    <th scope="row">
+                        <label for="q_eud_options"><?php _e( 'Remember Options', $this->text_domain ); ?>
+                    </th>
+                    <td>
+                        <input id='q_eud_options' type='checkbox' name='q_eud_options' value=''/></label>
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Checking this option will save and reload your selected options for future exports.', $this->text_domain )
+                            ); 
+                        ?></p>
+                    </td>
+                </tr>
+                
                 <tr valign="top">
                     <th scope="row"><label for="q_eud_users_format"><?php _e( 'Format', $this->text_domain ); ?></label></th>
                     <td>
@@ -889,6 +1034,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 ?>
         <style>
             .toggleable { display: none; }
+            .hidden { display: none; }
         </style>
 <?php
             }
