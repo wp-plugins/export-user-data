@@ -4,7 +4,7 @@
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPressX Profile data.
-Version: 0.9.4
+Version: 0.9.5
 Author: Q Studio
 Author URI: http://qstudio.us
 License: GPL2
@@ -19,7 +19,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 {
     
     // plugin version
-    define( 'Q_EXPORT_USER_DATA_VERSION', '0.9.4' ); // version ##
+    define( 'Q_EXPORT_USER_DATA_VERSION', '0.9.5' ); // version ##
     
     // instatiate class via hook, only if inside admin
     if ( is_admin() ) {
@@ -517,10 +517,14 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                     if ( isset( $bp_data ) && isset( $bp_data[$field] ) && in_array( $field, $bp_fields_passed ) ) {
 
                         $value = $bp_data[$field];
-
+                        
                         if ( is_array( $value ) ) {
-                            $value = $value['field_data'];
+                            
+                            $value = maybe_unserialize($value['field_data']); // suggested by @grexican ##
+                            #$value = $value['field_data'];
+                            
                         }
+                        
                         $value = $this->sanitize($value);
 
                     // check if this is a BP field we want the updated date for ##
@@ -542,8 +546,9 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                     } else { 
 
                         $value = isset( $user->{$field} ) ? $user->{$field} : '';
-                        $value = is_array( $value ) ? serialize( $value ) : $value; // maybe serialize the value ##
-
+                        #$value = is_array( $value ) ? serialize( $value ) : $value; // maybe serialize the value ##
+                        $value = is_array( $value ) ? implode(", ", $value ) : $value; // maybe serialize the value - suggested by @nicmare ##
+                        
                     }
 
                     // correct program value to Program Name ##

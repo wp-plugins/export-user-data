@@ -2,8 +2,8 @@
 **Contributors:** qlstudio  
 **Tags:** user, users, xprofile, usermeta csv, excel, batch, export, save, download  
 **Requires at least:** 3.2  
-**Tested up to:** 3.9.0  
-**Stable tag:** 0.9.3  
+**Tested up to:** 3.9.2  
+**Stable tag:** 0.9.5  
 **License:** GPLv2  
 
 Export users data, metadata and buddypress xprofile data to a csv or Excel file
@@ -54,10 +54,17 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 
 ## Screenshots ##
 
-###1. User export screen###
+### 1. User export screen ###
 ![ScreenShot](http://s.w.org/plugins/export-user-data/screenshot-1.png?r=859689)
 
 ## Changelog ##
+
+### 0.9.5 ###
+* BP Serialized data fixes - thanks to @nicmare & @grexican
+* Tested on WP 3.9.2 & BP 2.0.2
+
+### 0.9.4 ###
+* BP X Profile Export Fix ( > version 2.0 )
 
 ### 0.9.3 ###
 * fix for hidden admin bar
