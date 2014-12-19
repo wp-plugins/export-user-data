@@ -4,7 +4,7 @@
 Plugin Name: Export User Data
 Plugin URI: http://qstudio.us/plugins/
 Description: Export User data, metadata and BuddyPress X-Profile data.
-Version: 0.9.6
+Version: 1.0.2
 Author: Q Studio
 Author URI: http://qstudio.us
 License: GPL2
@@ -23,7 +23,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 {
     
     // plugin version
-    define( 'Q_EXPORT_USER_DATA_VERSION', '0.9.6' ); // version ##
+    define( 'Q_EXPORT_USER_DATA_VERSION', '1.0.0' ); // version ##
     
     // instatiate class via hook, only if inside admin
     if ( is_admin() ) {
@@ -52,6 +52,8 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         private $bp_fields_saved_fields = array();
         private $bp_fields_update_time_saved_fields = array();
         private $role = '';
+        private $roles = '1';
+        private $groups = '1';
         private $start_date = '';
         private $end_date = '';
         private $limit_offset = '';
@@ -93,9 +95,6 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 add_action( 'admin_enqueue_scripts', array( $this, 'add_css_and_js' ), 1 );
                 add_action( 'admin_footer', array( $this, 'jquery' ), 100000 );
                 add_action( 'admin_footer', array( $this, 'css' ), 100000 );
-                
-                // check for saved settings, default to empty array ##
-                
                 
             }
 
@@ -140,7 +139,14 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 wp_register_style( 'q_export_user_data', plugins_url( 'css/export-user-data.css' ,__FILE__ ));
                 wp_enqueue_style( 'q_export_user_data' );
                 wp_enqueue_script( 'q_eud_multi_select_js', plugins_url( 'js/jquery.multi-select.js', __FILE__ ), array('jquery'), '0.9.8', false );
+                
+                // add script ##
+                wp_enqueue_script('jquery-ui-datepicker');
 
+                // add style ##
+                wp_enqueue_style( 'jquery-ui-datepicker' );
+                wp_enqueue_style('jquery-ui-css', 'http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.2/themes/smoothness/jquery-ui.css');
+                
             } 
 
         }
@@ -246,7 +252,6 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         }
         
         
-        
         /**
          * Check for and load stored user options
          * 
@@ -265,6 +270,8 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                   $this->bp_fields_saved_fields = $this->q_eud_exports[$export]['bp_fields_saved_fields'];
                   $this->bp_fields_update_time_saved_fields = $this->q_eud_exports[$export]['bp_fields_update_time_saved_fields'];
                   $this->role = $this->q_eud_exports[$export]['role'];
+                  $this->roles = $this->q_eud_exports[$export]['roles'];
+                  $this->groups = $this->q_eud_exports[$export]['groups'];
                   $this->start_date = $this->q_eud_exports[$export]['start_date'];
                   $this->end_date = $this->q_eud_exports[$export]['end_date'];
                   $this->limit_offset = $this->q_eud_exports[$export]['limit_offset'];
@@ -277,6 +284,8 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                   $this->bp_fields_saved_fields = array();
                   $this->bp_fields_update_time_saved_fields = array();
                   $this->role = '';
+                  $this->roles = '1';
+                  $this->groups = '1';
                   $this->start_date = '';
                   $this->end_date = '';
                   $this->limit_offset = '';
@@ -287,12 +296,10 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
           
         }
         
-        
 
         /**
          * method to store user options
          *
-         * @todo        sanitizing function is not correct - yet... ##
          * @param       string      $save_export        Export Key name
          * @param       array       $save_options       Array of export options to save
          * @since       0.9.3
@@ -321,29 +328,6 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             }
             
             if ( isset( $options ) && is_array( $options ) ) {
-                
-                // @todo - sanitizing function is not correct - yet... ##
-                /*
-                // update_option sanitizes the option name but not the option value ##
-                foreach ( $options as $field_name => $field_value ) {
-                  
-                    // so do that here. ##
-                    if ( is_array( $field_value ) ) {
-                      
-                        foreach ( $field_value as $field_array_key => $field_array_value ) {
-                            
-                            $options[$key][$field_name][$field_array_key] = sanitize_text_field( $field_array_value );
-                            
-                        }
-                        
-                    } else {
-                      
-                        $options[$key][$field_name] = sanitize_text_field( $field_value );
-                    
-                    }
-                    
-                }
-                */
                 
                 // update_option sanitizes the option name but not the option value ##
                 foreach ( $options as $field_name => $field_value ) {
@@ -385,7 +369,6 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             }
             
 	}
-        
         
         
         /**
@@ -471,7 +454,6 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         }
         
         
-        
         /**
          * Process content of CSV file
          *
@@ -480,9 +462,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         public function generate_data() 
         {
             
-            // This function runs before we display the admin page, so we need to skip
-            // the rest of this function if the user didn't click on the
-            // Save, Load, or Delete Settings buttons
+            // Check if the user clicked on the Save, Load, or Delete Settings buttons ##
             if ( 
                 ! isset( $_POST['_wpnonce-q-eud-export-user-page_export'] )
                 || isset( $_POST['load_export'] )
@@ -499,8 +479,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             
             // build argument array ##
             $args = array(
-                #'fields'    => 'all_with_meta',
-                'fields'    => 'all', // reduce initial data load and call up required fields inside the loop ##
+                'fields'    => 'all',
                 'role'      => sanitize_text_field( $_POST['role'] )
             );
 
@@ -514,44 +493,41 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             }
 
             // is there a range limit in place for the export ? ##
-            if ( isset( $_POST['limit_offset'] ) && $_POST['limit_offset'] != '' && isset( $_POST['limit_total'] ) && $_POST['limit_total'] != '' ) {
+            if ( isset( $_POST['limit_total'] ) && $_POST['limit_total'] != '' ) {
                 
                 // let's just make sure they are integer values ##
-                $limit_offset = (int)$_POST['limit_offset'];
+                $limit_offset = isset( $_POST['limit_offset'] ) ? (int)$_POST['limit_offset'] : 0 ;
                 $limit_total = (int)$_POST['limit_total'];
                 
                 if ( is_int( $limit_offset ) && is_int( $limit_total ) ) {
                 
                     $args['offset'] = $limit_offset;
-		    /* cwjordan codex says:
-                     *     number - Limit the total number of users returned
-		     * so don't subtract the offset, like as not 
-		     * that will give us a negative number for $args['number']
-		     * e.g. offset of 1000 total of 100 */
-		    $args['number'] = $limit_total;                    
-//                    $args['number'] = $limit_total - $limit_offset;
-			
-                    #wp_die(pr($args));
+		    $args['number'] = $limit_total; // number - Limit the total number of users returned ##        
+		    
+                    // test it ##
+                    #wp_die( $this->pr( $args ) );
                 
                 }
                 
             }
             
-            /* pre_user query */
+            // pre_user query ##
             add_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
             $users = get_users( $args );
             remove_action( 'pre_user_query', array( $this, 'pre_user_query' ) );
-
-            /* no users found, so chuck an error into the args array and exit the export */
+            
+            // test args ##
+            #wp_die( $this->pr ( $users ) );
+            
+            // no users found, so chuck an error into the args array and exit the export ##
             if ( ! $users ) {
 
-                $referer = add_query_arg( 'error', 'empty', wp_get_referer() );
-                wp_redirect( $referer );
+                wp_redirect( add_query_arg( 'error', 'empty', wp_get_referer() ) );
                 exit;
 
             }
             
-            /* get sitename and clean it up */
+            // get sitename and clean it up ##
             $sitename = sanitize_key( get_bloginfo( 'name' ) );
             if ( ! empty( $sitename ) ) {
                 $sitename .= '.';
@@ -570,7 +546,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 
             switch ( $export_method ) {
 
-                case "csv":
+                case ( 'csv' ):
 
                     // to csv ##
                     header( 'Content-Description: File Transfer' );
@@ -597,7 +573,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 
                     break;
 
-                case ('excel'):
+                case ( 'excel' ):
 
                     // to xls ##
                     header( 'Content-Description: File Transfer' );
@@ -632,11 +608,9 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             }
 
 
-            // function to exclude data ## 
-            $exclude_data = apply_filters( 'q_eud_exclude_data', array() );
-
             // check for selected usermeta fields ##
             $usermeta = isset( $_POST['usermeta'] ) ? $_POST['usermeta']: '';
+            #$this->pr( $usermeta );
             $usermeta_fields = array();
            
             if ( $usermeta && is_array( $usermeta ) ) {
@@ -645,13 +619,13 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 }
             }
             
-            #pr($usermeta_fields);
+            #$this->pr( $usermeta_fields );
             #exit;
 
             // check for selected x profile fields ##
             $bp_fields = isset( $_POST['bp_fields'] ) ? $_POST['bp_fields'] : '';
             $bp_fields_passed = array();
-            if ( $bp_fields && is_array($bp_fields) ) {
+            if ( $bp_fields && is_array( $bp_fields ) ) {
 
                 foreach( $bp_fields as $field ) {
 
@@ -685,34 +659,24 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             // global wpdb object ##
             global $wpdb;
 
-            // exportable user data ##
-            $data_keys = array(
-                    'ID'
-                ,   'user_login'
-                #,  'user_pass'
-                ,   'user_nicename'
-                ,   'user_email'
-                ,   'user_url'
-                ,   'user_registered'
-                #,  'user_activation_key'
-                #,  'user_status',
-                ,   'display_name'
-            );
-
             // compile final fields list ##
-            $fields = array_merge( $data_keys, $usermeta_fields, $bp_fields_passed, $bp_fields_update_passed );
-
+            $fields = array_merge( $this->get_user_fields(), $this->get_special_fields(), $usermeta_fields, $bp_fields_passed, $bp_fields_update_passed );
+            
+            // test field array ##
+            #$this->pr( $fields );
+            
             // build the document headers ##
             $headers = array();
-
+            
             foreach ( $fields as $key => $field ) {
 
                 // rename programs field ##
                 if ( $field == 'member_of_club' ){
                     $field = 'Program';
                 }
-
-                if ( in_array( $field, $exclude_data ) ) {
+                
+                // grab fields to exclude from exports ## 
+                if ( in_array( $field, $this->get_exclude_fields() ) ) {
 
                     unset( $fields[$key] );
 
@@ -737,7 +701,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
             ob_end_flush();
             
             // get the value in bytes allocated for Memory via php.ini ##
-            // @link http://wordpress.org/support/topic/how-to-exporting-a-lot-of-data-out-of-memory-issue?replies=2
+            // @link http://wordpress.org/support/topic/how-to-exporting-a-lot-of-data-out-of-memory-issue
             $memory_limit = $this->return_bytes( ini_get('memory_limit') ) * .75;
             
             // we need to disable caching while exporting because we export so much data that it could blow the memory cache
@@ -777,22 +741,34 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 $data = array();
 
                 // BP loaded ? ##
-                if ( function_exists ('bp_is_active') ) {
+                if ( function_exists ( 'bp_is_active' ) ) {
+                    
                     #$bp_data = BP_XProfile_ProfileData::get_all_for_user( $user->ID );
-                    $bp_data = self::get_all_for_user( $user->ID ); // take from old BP method ##
+                    $bp_data = self::get_all_for_user( $user->ID ); // taken from old BP method ##
+                    
                 }
-
+                
+                // single query method - get all user_meta data ##
+                $get_user_meta = (array)get_user_meta( $user->ID );
+                #wp_die( $this->pr( $get_user_meta ) );
+                
+                // Filter out empty meta data ##
+                $get_user_meta = array_filter( array_map( function( $a ) {
+                    return $a[0];
+                }, $get_user_meta ) );
+                
                 // loop over each field ##
                 foreach ( $fields as $field ) {
-
+                    
                     // check if this is a BP field ##
-                    if ( isset( $bp_data ) && isset( $bp_data[$field] ) && in_array( $field, $bp_fields_passed ) ) {
+                    if ( isset( $bp_data ) && isset( $bp_data[$field] ) && in_array( $field, $bp_fields_passed ) ) 
+                    {
 
                         $value = $bp_data[$field];
                         
                         if ( is_array( $value ) ) {
                             
-                            $value = maybe_unserialize($value['field_data']); // suggested by @grexican ##
+                            $value = maybe_unserialize( $value['field_data'] ); // suggested by @grexican ##
                             #$value = $value['field_data'];
                             
 			    /**
@@ -814,7 +790,9 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                         $value = $this->sanitize($value);
 
                     // check if this is a BP field we want the updated date for ##
-                    } elseif ( in_array( $field, $bp_fields_update_passed ) ) {
+                    } 
+                    elseif ( in_array( $field, $bp_fields_update_passed ) ) 
+                    {
 
                         global $bp;
 
@@ -833,28 +811,124 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                                 );
 
                     // include the user's role in the export ##
-                    } elseif ( isset( $_POST['q_eud_role'] ) && $_POST['q_eud_role'] != '' && $field == 'role' ){
+                    } 
+                    elseif ( isset( $_POST['roles'] ) && $_POST['roles'] == '1' && $field == 'roles' )
+                    {
                         
                         // add "Role" as $value ##
-                        $value = $user->roles[0] ? $user->roles[0] : '' ; // empty value if no role found - note: we only take the first role assigned to the user ##
+                        $value = isset( $user->roles[0] ) ? implode( $user->roles, '|' ) : '' ; // empty value if no role found - or flat array of user roles ##
+                    
+                    // include the user's BP group in the export ##
+                    } 
+                    elseif ( isset( $_POST['groups'] ) && $_POST['groups'] == '1' && $field == 'groups' ) 
+                    {
                         
-                    // user data or usermeta ##
-                    } else { 
+                        if ( function_exists( 'groups_get_user_groups' ) ) {
+                        
+                            // check if user is a member of any groups ##
+                            $group_ids = groups_get_user_groups( $user->ID );
 
-                        $value = isset( $user->{$field} ) ? $user->{$field} : '';
-                        #$value = is_array( $value ) ? serialize( $value ) : $value; // maybe serialize the value ##
-                        $value = is_array( $value ) ? implode(", ", $value ) : $value; // maybe serialize the value - suggested by @nicmare ##
+                            if ( ! $group_ids || $group_ids == '' ) { 
+
+                                $value = ''; 
+
+                            } else {
+
+                                // new empty array ##
+                                $groups = array();
+
+                                // loop over all groups ##
+                                foreach( $group_ids["groups"] as $group_id ) { 
+
+                                    $groups[] = groups_get_group( array( 'group_id' => $group_id )) -> name . ( end( $group_ids["groups"] ) == $group_id ? '' : '' ); 
+
+                                }
+
+                                // implode it ##
+                                $value = implode( $groups, '|' );
+
+                            }
+
+                        } else {
+                            
+                            $value = '';
+                            
+                        }
+                     
+                    } 
+                    elseif ( $field == 'bp_latest_update' ) 
+                    {
                         
+                        // https://bpdevel.wordpress.com/2014/02/21/user-last_activity-data-and-buddypress-2-0/ ##
+                        $value = bp_get_user_last_activity( $user->ID );
+                        
+                    // user or usermeta field ##
+                    } 
+                    else 
+                    { 
+                        
+                        // the user_meta key isset ##
+                        if ( isset( $get_user_meta[$field] ) ) {
+                            
+                            // take from the bulk get_user_meta call ##
+                            $value = $get_user_meta[$field];
+                        
+                        // standard WP_User value ##
+                        } else {
+                            
+                            // use the magically assigned value from WP_Users
+                            $value = $user->{$field};
+                            
+                        }
+                        
+                       
+                        // the $value is serialized ##
+                        if ( is_serialized( $value ) ) {
+                            
+                            // unserliaze to new variable ##
+                            $unserialized = @unserialize( $value );
+                            
+                            // test if unserliazing produced errors ##
+                            if ( $unserialized !== false || $value == 'b:0;' ) {
+                                
+                                #$value = 'UNSERIALIZED_'.$value;
+                                $value = $unserialized;
+                                
+                            } else {
+                                
+                                // failed to unserialize - data potentially corrupted in db ##
+                                $value = $value;
+                                
+                            }
+                            
+                        }
+                            
+                        // the value is an array ##                        
+                        if ( is_array ( $value ) ) {
+
+                            // recursive implode it ##
+                            $value = self::recursive_implode( $value );
+
+                        }
+                            
                     }
-
+                    
+                    
                     // correct program value to Program Name ##
                     if ( $field == 'member_of_club' ) {
+                        
                         $value = get_the_title($value);
+                        
                     }
-
+                    
+                    // wrap values in quotes and add to array ##
                     if ( $is_csv ) {
+                        
                         $data[] = '"' . str_replace( '"', '""', $value ) . '"';
+                        
+                    // just add to array ##
                     } else {
+                        
                         $data[] = $value;
                     }
 
@@ -870,7 +944,6 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 
             // stop PHP, so file can export correctly ##
             exit;
-
 
         }
 
@@ -914,7 +987,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 $save_export = sanitize_text_field( $save_export );
               
                 // Build array of $options to save and save them ##
-                if ( $save_export != "" ) {
+                if ( isset( $save_export ) ) {
                
                     // prepare all array values ##
                     $usermeta = isset( $_POST['usermeta'] ) ? $_POST['usermeta']: '' ;
@@ -922,25 +995,27 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                     $bp_fields_update = isset( $_POST['bp_fields_update_time'] ) ? $_POST['bp_fields_update_time'] : '' ;
                     $format = isset( $_POST['format'] ) ? $_POST['format'] : '' ;
                     $role = isset( $_POST['role'] ) ? $_POST['role'] : '' ;
+                    $roles = isset( $_POST['roles'] ) ? $_POST['roles'] : '0' ;
+                    $groups = isset( $_POST['groups'] ) ? $_POST['groups'] : '0' ;
                     $start_date = isset( $_POST['start_date'] ) ? $_POST['start_date'] : '' ;
                     $end_date = isset( $_POST['end_date'] ) ? $_POST['end_date'] : '' ;
                     $limit_offset = isset( $_POST['limit_offset'] ) ? $_POST['limit_offset'] : '' ;
                     $limit_total = isset( $_POST['limit_total'] ) ? $_POST['limit_total'] : '' ;
                     
-                    // assign all values to a multidimensional array with $save_export as the key of the upper array ##
-                    #$options = array ( 
-                        $save_array = array (
-                            'usermeta_saved_fields' => $usermeta,
-                            'bp_fields_saved_fields' => $bp_fields,
-                            'bp_fields_update_time_saved_fields' => $bp_fields_update,
-                            'role' => $role,
-                            'start_date' => $start_date,
-                            'end_date' => $end_date,
-                            'limit_offset' => $limit_offset,
-                            'limit_total' => $limit_total,
-                            'format' => $format 
-                        );
-                    #);
+                    // assign all values to an array ##
+                    $save_array = array (
+                        'usermeta_saved_fields' => $usermeta,
+                        'bp_fields_saved_fields' => $bp_fields,
+                        'bp_fields_update_time_saved_fields' => $bp_fields_update,
+                        'role' => $role,
+                        'roles' => $roles,
+                        'groups' => $groups,
+                        'start_date' => $start_date,
+                        'end_date' => $end_date,
+                        'limit_offset' => $limit_offset,
+                        'limit_total' => $limit_total,
+                        'format' => $format 
+                    );
                     
                     // store the options, for next load ##
                     $this->set_user_options( $save_export, $save_array );
@@ -1106,8 +1181,8 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 ?>
 <?php
 
-                // buddypress x profile data ##
-                if ( function_exists ('bp_is_active') ) {
+            // buddypress x profile data ##
+            if ( function_exists ('bp_is_active') ) {
 
                 // grab all buddypress x profile fields ##
                 $bp_fields = $wpdb->get_results( "SELECT distinct(name) FROM ".$wpdb->base_prefix."bp_xprofile_fields WHERE parent_id = 0" );
@@ -1185,9 +1260,23 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                         ?></p>
                     </td>
                 </tr>
+
+                <tr valign="top" class="toggleable">
+                    <th scope="row"><label for="groups"><?php _e( 'BP User Groups', $this->text_domain ); ?></label></th>
+                    <td>
+                        <input id='groups' type='checkbox' name='groups' value='1' <?php checked( isset ( $this->groups ) ? intval ( $this->groups ) : '', 1 ); ?> />
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Include BuddyPress Group Data. <a href="%s" target="_blank">%s</a>', $this->text_domain )
+                                ,   esc_html('https://codex.buddypress.org/buddypress-components-and-features/groups/')
+                                ,   'Codex'
+                            ); 
+                        ?></p>
+                    </td>
+                </tr>
 <?php		
 
-                } // BP installed and active ##
+            } // BP installed and active ##
 
 ?>
                 <tr valign="top" class="toggleable">
@@ -1198,12 +1287,18 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 
                             echo '<option value="">' . __( 'All Roles', $this->text_domain ) . '</option>';
                             global $wp_roles;
+                            
                             foreach ( $wp_roles->role_names as $role => $name ) {
-                              if ( isset ( $this->role ) && ( $this->role == $role ) ) {
-                                echo "\n\t<option selected value='" . esc_attr( $role ) . "'>$name</option>";
-                              } else {
-                                echo "\n\t<option value='" . esc_attr( $role ) . "'>$name</option>";
-                              }
+                                
+                                if ( isset ( $this->role ) && ( $this->role == $role ) ) {
+                                    
+                                    echo "\n\t<option selected value='" . esc_attr( $role ) . "'>$name</option>";
+                                    
+                                } else {
+                                    
+                                    echo "\n\t<option value='" . esc_attr( $role ) . "'>$name</option>";
+                                    
+                                }
                             }
 
 
@@ -1214,6 +1309,20 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                                 __( 'Filter the exported users by a WordPress Role. <a href="%s" target="_blank">%s</a>', $this->text_domain )
                                 ,   esc_html('http://codex.wordpress.org/Roles_and_Capabilities')
                                 ,   'Codex'
+                            ); 
+                        ?></p>
+                    </td>
+                </tr>
+                
+                <tr valign="top" class="toggleable">
+                    <th scope="row"><label for="roles"><?php _e( 'User Roles', $this->text_domain ); ?></label></th>
+                    <td>
+                        <input id='roles' type='checkbox' name='roles' value='1' <?php checked( isset ( $this->roles ) ? intval ( $this->roles ) : '', 1 ); ?> />
+                        <p class="description"><?php 
+                            printf( 
+                                __( 'Include all of the users <a href="%s" target="_blank">%s</a>', $this->text_domain )
+                                ,   esc_html('http://codex.wordpress.org/Roles_and_Capabilities')
+                                ,   'Roles'
                             ); 
                         ?></p>
                     </td>
@@ -1253,14 +1362,8 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 <tr valign="top" class="toggleable">
                     <th scope="row"><label><?php _e( 'Registered', $this->text_domain ); ?></label></th>
                     <td>
-                        <select name="start_date" id="q_eud_users_start_date">
-                            <option value="0"><?php _e( 'Start Date', $this->text_domain ); ?></option>
-                            <?php $this->export_date_options($this->start_date); ?>
-                        </select>
-                        <select name="end_date" id="q_eud_users_end_date">
-                            <option value="0"><?php _e( 'End Date', $this->text_domain ); ?></option>
-                            <?php $this->export_date_options($this->end_date); ?>
-                        </select>
+                        <input type="text" id="q_eud_users_start_date" name="start_date" value="<?php echo $this->start_date; ?>" class="start-datepicker" />
+                        <input type="text" id="q_eud_users_end_date" name="end_date" value="<?php echo $this->end_date; ?>" class="end-datepicker" />
                         <p class="description"><?php 
                             printf( 
                                 __( 'Pick a start and end user registration date to limit the results.', $this->text_domain )
@@ -1284,19 +1387,6 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                     </td>
                 </tr>
 
-                <tr valign="top" class="hidden">
-                    <th scope="row"><label for="q_eud_role"><?php _e( 'Include Role', $this->text_domain ); ?></label></th>
-                    <td>
-                        <input id='q_eud_role' type='checkbox' name='q_eud_role' value=''/></label>
-                        <p class="description"><?php 
-                            printf( 
-                                __( 'Checking this option will add a column that includes the user\'s role.', $this->text_domain )
-                            ); 
-                        ?></p>
-                    </td>
-                </tr>
-                </tr>
-                
                 <tr valign="top">
                     <th scope="row"><label for="q_eud_users_format"><?php _e( 'Format', $this->text_domain ); ?></label></th>
                     <td>
@@ -1327,7 +1417,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                     <td>
 
                         <div class="row">
-                            <input type="text" class="regular-text" name="save_new_export_name" id="q_eud_save_options_new_export" placeholder="<?php _e( 'Export Name', $this->text_domain ); ?>">
+                            <input type="text" class="regular-text" name="save_new_export_name" id="q_eud_save_options_new_export" placeholder="<?php _e( 'Export Name', $this->text_domain ); ?>" value="<?php echo isset( $_POST['export_name'] ) ? $_POST['export_name'] : '' ; ?>">
                             <input type="submit" id="save_export" class="button-primary" name="save_export" value="<?php _e( 'Save', $this->text_domain ); ?>" />
                         </div>
                         <?php
@@ -1400,7 +1490,7 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         }
 
         
-         /**
+        /**
          * Inline jQuery
          * @since       0.8.2
          */
@@ -1480,7 +1570,6 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 }
             });
             
-            // @todo - probably we're going to require more validation on these buttons ##
             // validate save button ##
             jQuery("#save_export").click( function(e) {
                 
@@ -1502,6 +1591,27 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
                 jQuery(this).removeClass("error");
                 
             });
+            
+<?php 
+            
+            // method returns an object with "first" & "last" keys ##
+            $dates = self::get_user_registered_dates(); 
+            
+?>
+            
+            // start date picker ##
+            jQuery('.start-datepicker').datepicker( {
+                dateFormat  : 'yy-mm-dd',
+                minDate     : '<?php echo substr( $dates["0"]->first, 0, 10 ); ?>',
+                maxDate     : '<?php echo substr( $dates["0"]->last, 0, 10 ); ?>'
+            } );
+            
+            // end date picker ##
+            jQuery('.end-datepicker').datepicker( {
+                dateFormat  : 'yy-mm-dd',
+                minDate     : '<?php echo substr( $dates["0"]->first, 0, 10 ); ?>',
+                maxDate     : '<?php echo substr( $dates["0"]->last, 0, 10 ); ?>'
+            } );
             
         });
 
@@ -1535,15 +1645,61 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
         /**
          * Data to exclude from export
          */
-        public function exclude_data() 
+        public function get_exclude_fields() 
         {
-
-            $exclude = array( 'user_pass', 'user_activation_key' );
-            return $exclude;
+            
+            $exclude_fields = array (
+                    'user_pass'
+                #,   'user_activation_key'
+            );
+            
+            return apply_filters( 'export_user_data_exclude_fields', $exclude_fields );
 
         }
+        
+        
+        /**
+         * Get the array of standard WP_User fields to return
+         */
+        public function get_user_fields() 
+        {
+            
+            // exportable user data ##
+            $user_fields = array(
+                    'ID'
+                ,   'user_login'
+                #,  'user_pass'
+                ,   'user_nicename'
+                ,   'user_email'
+                ,   'user_url'
+                ,   'user_registered'
+                #,  'user_activation_key'
+                ,   'user_status'
+                ,   'display_name'
+            );
 
+            return apply_filters( 'export_user_data_user_fields', $user_fields );
 
+        }
+        
+        
+        /**
+         * Get the array of special user fields to return
+         */
+        public function get_special_fields() 
+        {
+            
+            // exportable user data ##
+            $special_fields = array(
+                    'roles'     // list of WP Roles
+                ,   'groups'    // BP Groups
+            );
+
+            return apply_filters( 'export_user_data_special_fields', $special_fields );
+
+        }
+        
+        
         /*
          * Pre User Query
          */
@@ -1554,15 +1710,30 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
 
             $where = '';
 
-            if ( ! empty( $_POST['start_date'] ) )
-                $where .= $wpdb->prepare( " AND $wpdb->users.user_registered >= %s", date( 'Y-m-d', strtotime( sanitize_text_field ( $_POST['start_date'] ) ) ) );
-
-            if ( ! empty( $_POST['end_date'] ) )
-                $where .= $wpdb->prepare( " AND $wpdb->users.user_registered < %s", date( 'Y-m-d', strtotime( '+1 month', strtotime( sanitize_text_field ( $_POST['end_date'] ) ) ) ) );
-
-            if ( ! empty( $where ) )
+            if ( ! empty( $_POST['start_date'] ) ) {
+                
+                $date = new DateTime( sanitize_text_field ( $_POST['start_date'] ). ' 00:00:00' );
+                $date_formatted = $date->format( 'Y-m-d H:i:s' );
+                
+                $where .= $wpdb->prepare( " AND $wpdb->users.user_registered >= %s", $date_formatted );
+                
+            }
+            if ( ! empty( $_POST['end_date'] ) ) {
+                
+                $date = new DateTime( sanitize_text_field ( $_POST['end_date'] ). ' 00:00:00' );
+                $date_formatted = $date->format( 'Y-m-d H:i:s' );
+                
+                $where .= $wpdb->prepare( " AND $wpdb->users.user_registered < %s", $date_formatted );
+                
+            }
+                
+            if ( ! empty( $where ) ) {
+                
                 $user_search->query_where = str_replace( 'WHERE 1=1', "WHERE 1=1 $where", $user_search->query_where );
+                
+            }
 
+            #wp_die( self::pr( $user_search ) );
             return $user_search;
 
         }
@@ -1573,48 +1744,96 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
          * 
          * @since       0.9.6
          * @global      type    $wpdb
-         * @global      type    $wp_locale
-         * @return      void
+         * @return      Array of objects
          */
-        private function export_date_options( $selected_date)
+        private static function get_user_registered_dates()
         {
-
+            
+            // invite in global objects ##
+            global $wpdb;
+            
+            // query user table for oldest and newest registration ##
+            $range = 
+                $wpdb->get_results ( 
+                    #$wpdb->prepare ( 
+                        "
+                        SELECT
+                            MIN( user_registered ) AS first,
+                            MAX( user_registered ) AS last
+                        FROM
+                            {$wpdb->users}
+                        "
+                    #)
+                );
+            
+            return $range;
+            
+            /*
+            // invite in global objects ##
             global $wpdb, $wp_locale;
 
+            // grab list of years and months available
             $months = $wpdb->get_results( "
-                SELECT DISTINCT YEAR( user_registered ) AS year, MONTH( user_registered ) AS month
+                SELECT DISTINCT YEAR( user_registered ) AS year, MONTH( user_registered ) AS month, DAY( user_registered ) AS day
                 FROM $wpdb->users
                 ORDER BY user_registered DESC
             " );
 
+            // check if we got a result ##
             $month_count = count( $months );
-            if ( !$month_count || ( 1 == $month_count && 0 == $months[0]->month ) )
+            
+            // nothing cokking ##
+            if ( ! $month_count || ( 1 == $month_count && 0 == $months[0]->month ) ) {
+                
                 return;
+                
+            }
 
+            #wp_die( self::pr( $months ) );
+            
+            // loop over each month ##
             foreach ( $months as $date ) {
-                if ( 0 == $date->year )
+                
+                // skip if year == '0' ##
+                if ( 0 == $date->year ) {
                     continue;
-
+                }
+                
+                // make sure the month is in a MM two digit format ##
                 $month = zeroise( $date->month, 2 );
+                
+                // build up a tae string - YYYY-MM ##
                 $date_string = $date->year . '-' . $month;
+                
+                // check if passed date matches this string ##
                 if ( $selected_date == $date_string ) {
-                  echo( '<option selected value="' . $date_string . '">' . $wp_locale->get_month( $month ) . ' ' . $date->year . '</option>' );
+                    
+?>
+                    <option selected value="<?php echo $date_string; ?>"><?php echo $wp_locale->get_month( $month ); ?> <?php echo $date->year; ?></option>
+<?php
+                    
                 } else {
-                  echo( '<option value="' . $date_string . '">' . $wp_locale->get_month( $month ) . ' ' . $date->year . '</option>' );
+                    
+?>
+                    <option value="<?php echo $date_string; ?>"><?php echo $wp_locale->get_month( $month ); ?> <?php echo $date->year; ?></option>
+<?php
+                    
                 }
 
             }
+            */
 
         }
 
+        
         /**
          * Quote array elements and separate with commas
          *
          * @since       0.9.6
          * @return      String
          */
-         private function quote_array( $array )
-         {
+        private function quote_array( $array )
+        {
              
            $prefix = ''; // starts empty ##
            $elementlist = '';
@@ -1630,16 +1849,53 @@ if ( ! class_exists( 'Q_Export_User_Data' ) )
            
          }
          
+    
+        /**
+        * Recursively implodes an array
+        * 
+        * @since    1.0.1
+        * @access   public
+        * @param    array       $array          multi-dimensional array to recursively implode
+        * @param    string      $glue           value that glues elements together	
+        * @param    bool        $include_keys   include keys before their values
+        * @param    bool        $trim_all       trim ALL whitespace from string
+        * @return   string      imploded array
+        * @link     https://gist.github.com/jimmygle/2564610
+        */ 
+        public static function recursive_implode( array $array, $glue = '|', $include_keys = true, $trim_all = true )
+        {
+            
+            $glued_string = '';
+            $glue_count = 0;
+
+            // Recursively iterates array and adds key/value to glued string ##
+            array_walk_recursive( $array, function( $value, $key ) use ( $glue, $include_keys, &$glued_string, $glue_count )
+            {
+                $include_keys and $glued_string .= $key.$glue;
+                $glued_string .= $value.$glue; //.'GC_'.$glue_count.$glue;
+                $glue_count ++;
+            });
+
+            // Removes last $glue from string ##
+            strlen( $glue) > 0 and $glued_string = substr( $glued_string, 0, -strlen( $glue ) );
+
+            // Trim ALL whitespace ##
+            $trim_all and $glued_string = preg_replace( "/(\s)/ixsm", '', $glued_string );
+
+            return (string) $glued_string;
+            
+        }
+         
         
         /**
          * Nicer var_dump
          * 
          * @since       0.9.6
          */
-        function pr ($thing)
+        public function pr ( $variable )
         {
             echo '<pre>';
-            print_r ($thing);
+            print_r ( $variable );
             echo '</pre>';
         }
 

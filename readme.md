@@ -2,8 +2,8 @@
 **Contributors:** qlstudio  
 **Tags:** user, users, xprofile, usermeta csv, excel, batch, export, save, download  
 **Requires at least:** 3.2  
-**Tested up to:** 4.0.0  
-**Stable tag:** 0.9.6  
+**Tested up to:** 4.1.0  
+**Stable tag:** 1.0.3 
 **License:** GPLv2  
 
 Export users data, metadata and buddypress xprofile data to a csv or Excel file
@@ -58,6 +58,33 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 ![ScreenShot](http://s.w.org/plugins/export-user-data/screenshot-1.png?r=859689)
 
 ## Changelog ##
+
+### 1.0.3 ###
+* Tested as working on WordPress 4.1.0.
+
+### 1.0.2 ###
+* Removed get_user_meta method, as not effective.
+* Added registration date from and to pickers - to replace monthly <select> lists.
+
+### 1.0.1 ###
+* Added recursive_implode() method to flatten data stored in arrays ( exported with keys and values divided by "|" )
+
+### 1.0.0 ###
+* Reduced all get_user_meta queries to a single call to improve performance
+* Serialized data is now returned in it's pure stored format - not imploded or unserialized to avoid data structure loss
+
+### 0.9.9 ###
+* get_uermeta renamed get_user_meta to be more consistent with WP
+* get_user_meta tidied up and tested on larger exports
+* added option to export user BP Groups
+* added option to export all user WP Roles
+
+### 0.9.8 ###
+* added get_usermeta() to check if meta keys are unique and return an array if not 
+* removed known_arrays() filter to allow for array data to be returned correctly - too hacky
+
+### 0.9.7 ###
+* Added known_arrays() filter to allow for array data to be returned correctly
 
 ### 0.9.6 ###
 * Save, load and delete stored export settings - thanks to @cwjordan
