@@ -60,6 +60,7 @@ Click on the 'Export User Data' link in the 'Users' menu, choose the role and th
 
 = 1.2.0 = 
 * Data stored in recursive and serialized arrays is now exported in a flat string format with safe delimiters ( ||, ||| - etc. )
+* Removed anonymous function calls giving errors on older versions of PHP
 
 = 1.1.1 = 
 * Removed accidently included .git files
